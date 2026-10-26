@@ -2,30 +2,39 @@ import { LEVELS } from './levels.mjs';
 import { compile, createState, applyCommand, isPathAhead, getLevelInfo, attachRules } from './core.mjs';
 import { loadProgress, saveProgress } from './progress.mjs';
 import { LabRenderer } from './renderer.mjs';
+import { PAGE_LEVELS, compilePageCode, applyPageCommand, checkPageGoals, createPageSnapshot } from './page-lab.mjs';
 
 const $ = id => document.getElementById(id);
 let store;
 try { store = localStorage; } catch { store = { getItem: () => null, setItem() { throw new Error('blocked'); } }; }
 const progress = loadProgress(store);
-let level = LEVELS.find(item => item.id === progress.levelId) || LEVELS[0];
-let language = progress.language;
-let state = createState(level);
+let track = progress.track;
+let language = track === 'page' ? 'js' : progress.language;
+let level = (track === 'page' ? PAGE_LEVELS : LEVELS).find(item => item.id === (track === 'page' ? progress.pageLevelId : progress.levelId)) || (track === 'page' ? PAGE_LEVELS : LEVELS)[0];
+let state = createState(track === 'page' ? LEVELS[0] : level);
 let mode = 'idle', queue = null, timer = null, generation = 0, activeLine = 0, hintIndex = 0, toastTimer, audio;
 let escapeEditor = false;
 let initialized = false;
 const code = $('code');
 const renderer = new LabRenderer($('board'));
-const titleOverrides = { 1: '让第一行代码动起来' };
+const pageSnapshot = createPageSnapshot(document);
+const lessons = () => track === 'page' ? PAGE_LEVELS : LEVELS;
+const lessonNumber = () => lessons().indexOf(level) + 1;
+const lessonCode = () => String(lessonNumber()).padStart(2, '0');
+const completed = () => track === 'page' ? progress.pageCompleted : progress.completed[language];
+const mapLevel = () => track === 'page' ? LEVELS[0] : level;
 const commandLabels = { forward: '前进一步', left: '向左转 90°', right: '向右转 90°' };
 const solutionButton = document.createElement('button');
 solutionButton.id = 'solution-button';solutionButton.className = 'solution-button';solutionButton.textContent = '查看参考答案';solutionButton.hidden = true;
 document.querySelector('.hint-strip').append(solutionButton);
 
 function persist() {
-  progress.language = language;progress.levelId = level.id;
+  progress.track = track;
+  if (track === 'page') progress.pageLevelId = level.id;
+  else { progress.language = language; progress.levelId = level.id; }
   saveProgress(store, progress);
 }
-function saveDraft() { progress.drafts[`${language}:${level.id}`] = code.value; persist(); }
+function saveDraft() { progress.drafts[`${track === 'page' ? 'page' : language}:${level.id}`] = code.value; persist(); }
 function toast(message) {
   clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;
   toastTimer=setTimeout(()=>$('toast').hidden=true,2400);
@@ -49,52 +58,83 @@ function setMode(next) {
   $('step-button').disabled=mode==='running'||mode==='won';
 }
 function cancelExecution() { generation++;clearTimeout(timer);timer=null;queue=null; }
-function resetScene() {
-  cancelExecution();state=createState(level);activeLine=0;setMode('idle');$('completion').hidden=true;
+function resetScene(restorePage = false) {
+  cancelExecution();renderer.clearCelebration();
+  if (restorePage) { pageSnapshot.restore();document.querySelectorAll('.target-highlight').forEach(el=>el.classList.remove('target-highlight')); }
+  state=createState(mapLevel());activeLine=0;setMode('idle');$('completion').hidden=true;
   updateBoard();highlightCode();
 }
 function updateSidebar() {
+  const previousTop=$('mission-list').scrollTop,previousLeft=$('mission-list').scrollLeft;
   $('mission-list').replaceChildren();
-  LEVELS.forEach(item=>{
-    const done=progress.completed[language].includes(item.id), button=document.createElement('button');
+  let stage;
+  lessons().forEach((item,index)=>{
+    if (stage !== item.stage) {
+      stage = item.stage;
+      const heading = document.createElement('p'); heading.className = 'stage-heading'; heading.textContent = stage || '基础练习'; $('mission-list').append(heading);
+    }
+    const done=completed().includes(item.id), button=document.createElement('button');
     button.className=`mission-button${item.id===level.id?' active':''}${done?' done':''}`;
     button.dataset.level=item.id;button.setAttribute('aria-current',item.id===level.id?'step':'false');
-    button.setAttribute('aria-label',`实验 ${item.id} ${item.name}${done?'，已完成':''}`);
-    const num=document.createElement('span');num.className='number';num.textContent=String(item.id).padStart(2,'0');
+    button.setAttribute('aria-label',`实验 ${index+1} ${item.name}${done?'，已完成':''}`);
+    const num=document.createElement('span');num.className='number';num.textContent=String(index+1).padStart(2,'0');
     const name=document.createElement('span');name.textContent=item.name;
     const mark=document.createElement('span');mark.className='mission-mark';mark.textContent=item.id===level.id?'›':done?'✓':'·';
     button.append(num,name,mark);button.addEventListener('click',()=>selectLevel(item.id));$('mission-list').append(button);
   });
-  const count=progress.completed[language].length;
-  $('progress-language').textContent=`${language==='js'?'JavaScript':'Rust'} 进度`;
-  $('progress-count').innerHTML=`${count} <span>/ 6</span>`;
-  $('progress-fill').style.width=`${count/6*100}%`;
+  const count=completed().length, total=lessons().length;
+  $('progress-language').textContent=track==='page'?'网页改造进度':`${language==='js'?'JavaScript':'Rust'} 进度`;
+  $('progress-count').innerHTML=`${count} <span>/ ${total}</span>`;
+  $('progress-fill').style.width=`${count/total*100}%`;
   document.querySelector('.progress-track').setAttribute('aria-valuenow',count);
+  document.querySelector('.progress-track').setAttribute('aria-valuemax',total);
+  const list=$('mission-list'),active=list.querySelector('.active');list.scrollTop=previousTop;list.scrollLeft=previousLeft;
+  if(list.scrollHeight>list.clientHeight){if(active.offsetTop<list.scrollTop)list.scrollTop=active.offsetTop;else if(active.offsetTop+active.offsetHeight>list.scrollTop+list.clientHeight)list.scrollTop=active.offsetTop+active.offsetHeight-list.clientHeight;}
+  if(list.scrollWidth>list.clientWidth){if(active.offsetLeft<list.scrollLeft)list.scrollLeft=active.offsetLeft;else if(active.offsetLeft+active.offsetWidth>list.scrollLeft+list.clientWidth)list.scrollLeft=active.offsetLeft+active.offsetWidth-list.clientWidth;}
 }
-function selectLevel(id,newLanguage=language) {
+function selectLevel(id,newLanguage=language,newTrack=track) {
   if(initialized)saveDraft();cancelExecution();
-  level=LEVELS.find(item=>item.id===id)||LEVELS[0];language=newLanguage;hintIndex=0;
-  code.value=progress.drafts[`${language}:${level.id}`]??level.starters[language];
-  $('breadcrumb').textContent=`实验 ${String(level.id).padStart(2,'0')} / ${level.concept}`;
-  $('mission-title').textContent=titleOverrides[level.id]||level.title;
+  pageSnapshot.restore();track=newTrack;language=track==='page'?'js':newLanguage;hintIndex=0;
+  level=lessons().find(item=>item.id===id)||lessons()[0];
+  code.value=progress.drafts[`${track==='page'?'page':language}:${level.id}`]??level.starters[language];
+  document.body.classList.toggle('mode-web',track==='page');
+  document.documentElement.dataset.track=track;
+  $('path-title').textContent=track==='page'?'改造实验室':'修复机器人';
+  $('path-summary').textContent=track==='page'?'6 个实验 · JavaScript DOM':'18 个实验 · 2 种语言';
+  $('lab-tab').classList.toggle('selected',track==='robot');$('page-tab').classList.toggle('selected',track==='page');
+  $('tab-rust').disabled=track==='page';$('tab-rust').title=track==='page'?'网页 DOM 实验使用 JavaScript，Rust 可在机器人路线中练习':'';
+  $('breadcrumb').textContent=`实验 ${lessonCode()} / ${level.stage || level.concept}`;
+  $('mission-title').textContent=level.title;
   $('mission-objective').textContent=level.objective;
+  $('task-difficulty').textContent=`${'●'.repeat(level.difficulty||1)}${'○'.repeat(5-(level.difficulty||1))} · ${level.suggestedMinutes||2} 分钟`;
+  $('new-skill').textContent=`本关学会：${level.newSkill||level.concept}`;
   $('concept-tags').replaceChildren();
   const tags=level.concept.split(/[、与]/).filter(Boolean);tags.push(language==='js'?'JavaScript':'Rust');
   tags.forEach(text=>{const tag=document.createElement('span');tag.className='tag';tag.textContent=text;$('concept-tags').append(tag);});
   document.querySelectorAll('[data-language]').forEach(button=>{const active=button.dataset.language===language;button.classList.toggle('active',active);button.setAttribute('aria-selected',active);});
-  $('filename').textContent=`mission_${String(level.id).padStart(2,'0')}.${language==='js'?'js':'rs'}`;
+  $('filename').textContent=`${track==='page'?'web':'mission'}_${lessonCode()}.${language==='js'?'js':'rs'}`;
   $('editor-language').textContent=language==='js'?'JAVASCRIPT':'RUST';
-  $('board-number').textContent=String(level.id).padStart(2,'0');$('board-title').textContent=level.name;$('sector').textContent=String(level.id).padStart(2,'0');
-  const info=getLevelInfo(level);$('grid-size').textContent=`${info.width} × ${info.height} GRID`;
+  $('board-number').textContent=lessonCode();$('board-title').textContent=level.name;$('sector').textContent=lessonCode();
+  const info=getLevelInfo(mapLevel());$('grid-size').textContent=track==='page'?'REAL DOM · LIVE':`${info.width} × ${info.height} GRID`;
+  $('scene-subtitle').textContent=track==='page'?'当前网页，就是你的实验对象':'收集能量，到达出口';
+  $('web-room-message').hidden=track!=='page';$('robot-goals').hidden=track==='page';$('web-goals').hidden=track!=='page';
+  $('syntax-note').firstChild.textContent=track==='page'?'支持本路线列出的真实 DOM 操作；切换关卡后页面复位。':'教学模式支持本关使用的指令与语法。';
+  $('target-list').replaceChildren();
+  if(track==='page'){
+    const targets=[...new Set(compilePageCode(level.solutions.js).map(command=>command.target))];
+    targets.forEach(target=>{const button=document.createElement('button');button.textContent=target==='body'?'document.body':target==='root'?'document.documentElement':target;button.title='点击定位页面中的真实元素';button.addEventListener('click',()=>{const element=target==='body'?document.body:target==='root'?document.documentElement:document.querySelector(target);document.querySelectorAll('.target-highlight').forEach(el=>el.classList.remove('target-highlight'));element.classList.add('target-highlight');element.scrollIntoView({block:'nearest',behavior:renderer.reduced?'instant':'smooth'});});$('target-list').append(button);});
+  }
   $('inline-hint').textContent=level.explanation[language];$('hint-count').textContent='';solutionButton.hidden=true;
-  $('mentor-message').textContent=level.id===1?'你好，未来的开发者！我是 B-01。用你的第一行代码，唤醒这间实验室吧。':`实验 ${String(level.id).padStart(2,'0')} 已就绪。${level.hints[0]} 试着先自己运行一次吧。`;
-  $('console').replaceChildren();log(`$ ${language==='js'?'javascript':'rust'} mission_${String(level.id).padStart(2,'0')}.${language==='js'?'js':'rs'}`,'command');log('等待运行… 你的下一行代码，会带我去哪？','muted');
+  $('mentor-message').textContent=track==='page'?'这次，你的实验对象是整个网页。运行代码后，抬头看看真实的灯光、名称和标牌发生了什么。':`实验 ${lessonCode()} 已就绪。${level.hints[0]} 一次掌握一个新知识。`;
+  document.querySelectorAll('.target-highlight').forEach(el=>el.classList.remove('target-highlight'));
+  $('console').replaceChildren();log(`$ ${track==='page'?'dom-lab':language==='js'?'javascript':'rust'} · 实验 ${lessonCode()}`,'command');log('等待运行… 下一行代码，会带来什么变化？','muted');
   code.scrollTop=0;code.scrollLeft=0;resetScene();updateSidebar();persist();updateCursor();
   initialized=true;
 }
 function updateBoard() {
-  const info=getLevelInfo(level),count=state.collected.length,total=info.batteries.length;
-  renderer.setScene(level,state,Math.min(240,450/progress.speed));
+  const info=getLevelInfo(mapLevel()),count=state.collected.length,total=info.batteries.length;
+  renderer.setScene(mapLevel(),state,Math.min(240,450/progress.speed));
+  $('board').setAttribute('aria-label',track==='page'?`网页实验 ${lessonNumber()}：${level.name}。B-01 是本关导师。${state.won?'页面目标已完成，机器人正在庆祝。':'按任务指示修改真实网页。'}`:`实验 ${lessonNumber()}：${level.name}。机器人在第 ${state.x+1} 列、第 ${state.y+1} 行，朝${['北','东','南','西'][state.dir]}。已收集 ${count} / ${total} 块能量。${state.won?'已完成实验。':''}`);
   $('energy-count').innerHTML=`${String(count).padStart(2,'0')} <small>/ ${String(total).padStart(2,'0')}</small>`;
   $('energy-dots').replaceChildren();
   for(let i=0;i<total;i++){const dot=document.createElement('i');dot.className=`energy-dot${i<count?' filled':''}`;$('energy-dots').append(dot);}
@@ -102,8 +142,16 @@ function updateBoard() {
   $('goal-move').classList.toggle('checked',state.steps>0);
   $('goal-energy').classList.toggle('checked',count===total);
   $('goal-exit').classList.toggle('checked',state.x===info.exit.x&&state.y===info.exit.y);
-  $('steps-count').textContent=`${state.steps} 条指令`;$('moves-count').textContent=`${state.moves} 次移动`;
+  $('steps-count').textContent=`${state.steps} 条指令`;$('moves-count').textContent=track==='page'?'DOM 已连接':`${state.moves} 次移动`;
   $('position-label').textContent=`B-01 · (${state.x+1}, ${state.y+1}) · 朝${['北','东','南','西'][state.dir]}`;
+  const checks=track==='page'?checkPageGoals(level,document):[
+    ...(total?[{label:`收集 ${total} 块能量`,passed:count===total}]:[]),
+    {label:'到达绿色出口',passed:state.x===info.exit.x&&state.y===info.exit.y}
+  ];
+  for(const container of [$('task-checklist'),...(track==='page'?[$('web-goals')]:[])]){
+    container.replaceChildren();
+    checks.forEach(check=>{const li=document.createElement('li');li.className=check.passed?'checked':'';const box=document.createElement('span');box.className='checkbox';const text=document.createElement('span');text.textContent=check.label;li.append(box,text);container.append(li);});
+  }
 }
 const escapeHtml=text=>text.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function colorLine(line) {
@@ -130,11 +178,11 @@ function highlightExecution(line) {
   if(top<code.scrollTop||top>code.scrollTop+code.clientHeight-45){code.scrollTop=Math.max(0,top-60);syncEditorScroll();}
 }
 function prepareExecution() {
-  cancelExecution();state=createState(level);$('completion').hidden=true;$('console').replaceChildren();saveDraft();
-  log(`$ ${language==='js'?'javascript':'rust'} · 实验 ${String(level.id).padStart(2,'0')}`,'command');
+  cancelExecution();renderer.clearCelebration();pageSnapshot.restore();state=createState(mapLevel());$('completion').hidden=true;$('console').replaceChildren();saveDraft();
+  log(`$ ${track==='page'?'dom-lab':language==='js'?'javascript':'rust'} · 实验 ${lessonCode()}`,'command');
   try{
-    queue=compile(code.value,language);
-    if(queue.length===0){log('还没有可执行的移动指令。试着写下 forward();','muted');setMode('done');updateBoard();return false;}
+    queue=track==='page'?compilePageCode(code.value):compile(code.value,language);
+    if(queue.length===0){log(track==='page'?'还没有页面操作。试着按本关目标修改一个真实元素。':'还没有可执行的移动指令。试着写下 forward();','muted');setMode('done');updateBoard();return false;}
     log('代码检查通过，B-01 准备执行。','muted');activeLine=0;updateBoard();return true;
   }catch(error){
     queue=null;setMode('error');log(error.message,'error');
@@ -146,28 +194,38 @@ function finish() {
   clearTimeout(timer);timer=null;
   if(state.won){
     queue=null;setMode('won');
-    const first=!progress.completed[language].includes(level.id);
-    if(first)progress.completed[language].push(level.id);
-    persist();updateSidebar();log(`✓ 实验成功！执行 ${state.steps} 条动作，收集全部 ${state.collected.length} 块能量。`,'success');
+    const first=!completed().includes(level.id);
+    if(first)completed().push(level.id);
+    persist();updateSidebar();log(track==='page'?`✓ 实验成功！${state.steps} 条 JavaScript 指令改变了真实页面。`:`✓ 实验成功！执行 ${state.steps} 条动作，收集全部 ${state.collected.length} 块能量。`,'success');
     $('completion').hidden=false;
-    const all=progress.completed[language].length===6;
+    const all=completed().length===lessons().length;
     $('completion-title').textContent=all?'整条学习路径已完成！':'实验成功，系统已修复。';
     $('completion-text').textContent=level.explanation[language];
-    $('next-button').textContent=level.id<6?'下一个实验 →':progress.completed[language==='js'?'rust':'js'].length<6?'挑战另一种语言 →':'回到第一个实验 →';
-    $('mentor-message').textContent=all?'所有系统恢复运行！试试另一种语言，看看同一个想法可以怎样表达。':'漂亮的调试！保存这次理解，下一个实验里我们继续前进。';
-    tone('win');
+    $('next-button').textContent=lessonNumber()<lessons().length?'下一个实验 →':track==='page'?'回到机器人实验 →':'挑战网页改造 →';
+    $('mentor-message').textContent=all?(track==='page'?'整个实验室都焕然一新了！回到机器人路线，继续用代码探索吧。':'所有系统恢复运行！试试另一种语言，看看同一个想法可以怎样表达。'):'漂亮的调试！保存这次理解，下一个实验里我们继续前进。';
+    renderer.celebrate();tone('win');
   }else if(state.status==='error'){
     queue=null;setMode('error');log(state.error,'error');log('修改代码后重新运行，或用“单步执行”检查每个动作。','muted');tone('error');
   }else{
     queue=null;setMode('done');
-    const info=getLevelInfo(level),missing=info.batteries.length-state.collected.length;
-    log(`代码已执行完。${missing>0?`还有 ${missing} 块能量未收集。`:'能量已收集完。'}${state.x!==info.exit.x||state.y!==info.exit.y?'继续前进，到达绿色出口。':'收集全部能量后才能完成实验。'}`,'muted');
+    if(track==='page')log('页面已更新。还有目标未达到，检查任务卡中的勾选状态后再试。','muted');
+    else {
+      const info=getLevelInfo(level),missing=info.batteries.length-state.collected.length;
+      log(`代码已执行完。${missing>0?`还有 ${missing} 块能量未收集。`:'能量已收集完。'}${state.x!==info.exit.x||state.y!==info.exit.y?'继续前进，到达绿色出口。':'收集全部能量后才能完成实验。'}`,'muted');
+    }
   }
 }
 function executeOne() {
   if(!queue||!queue.length){finish();return false;}
   const command=queue.shift();highlightExecution(command.line);
-  if(command.op==='if'){
+  if(track==='page'){
+    try {
+      const message=applyPageCommand(command,document);state={...state,steps:state.steps+1};log(`L${command.line}  ${message}`);
+      state.won=queue.length===0&&checkPageGoals(level,document).every(check=>check.passed);
+      if(state.won)state.status='won';
+    } catch(error) { state={...state,status:'error',error:error.message}; }
+    updateBoard();
+  }else if(command.op==='if'){
     const possible=isPathAhead(level,state);
     log(`L${command.line}  前方${possible?'可通行 → if':'是墙 → else'} 分支`);
     queue.unshift(...(possible?command.then:command.else));
@@ -211,24 +269,29 @@ code.addEventListener('keydown',event=>{
   else escapeEditor=false;
 });
 $('run-button').addEventListener('click',run);$('step-button').addEventListener('click',step);
-$('reset-button').addEventListener('click',()=>{code.value=level.starters[language];resetScene();saveDraft();$('console').replaceChildren();log('已恢复本关起始代码，重新出发。','muted');hintIndex=0;solutionButton.hidden=true;$('hint-count').textContent='';$('inline-hint').textContent=level.explanation[language];});
+$('reset-button').addEventListener('click',()=>{code.value=level.starters[language];resetScene(true);saveDraft();$('console').replaceChildren();log('已恢复本关起始代码与实验室环境，重新出发。','muted');hintIndex=0;solutionButton.hidden=true;$('hint-count').textContent='';$('inline-hint').textContent=level.explanation[language];});
 $('hint-button').addEventListener('click',()=>{
   $('inline-hint').textContent=level.hints[Math.min(hintIndex,level.hints.length-1)];hintIndex=Math.min(level.hints.length,hintIndex+1);$('hint-count').textContent=`${hintIndex}/${level.hints.length}`;
   if(hintIndex===level.hints.length)solutionButton.hidden=false;
 });
-solutionButton.addEventListener('click',()=>{code.value=level.solutions[language];resetScene();saveDraft();$('inline-hint').textContent=`参考答案已填入。${level.explanation[language]}`;toast('参考答案已填入，试着单步观察它。');});
+solutionButton.addEventListener('click',()=>{code.value=level.solutions[language];resetScene(true);saveDraft();$('inline-hint').textContent=`参考答案已填入。${level.explanation[language]}`;toast('参考答案已填入，试着单步观察它。');});
 $('clear-log').addEventListener('click',()=>$('console').replaceChildren());
 $('copy-button').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(code.value);toast('代码已复制');}catch{code.focus();code.select();toast('已选中代码，请按 Ctrl / ⌘ + C 复制。');}});
 document.querySelectorAll('[data-language]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.language!==language)selectLevel(level.id,button.dataset.language);}));
 document.querySelectorAll('[data-speed]').forEach(button=>button.addEventListener('click',()=>{progress.speed=Number(button.dataset.speed);updateSpeed();persist();}));
 function updateSpeed(){document.querySelectorAll('[data-speed]').forEach(button=>{const active=Number(button.dataset.speed)===progress.speed;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active);});}
-$('next-button').addEventListener('click',()=>{if(level.id<6)selectLevel(level.id+1);else selectLevel(1,progress.completed[language==='js'?'rust':'js'].length<6?(language==='js'?'rust':'js'):language);document.querySelector('.mission-intro').scrollIntoView({block:'start',behavior:renderer.reduced?'instant':'smooth'});});
+$('next-button').addEventListener('click',()=>{const next=lessons()[lessonNumber()];if(next)selectLevel(next.id);else if(track==='robot')selectLevel(PAGE_LEVELS[0].id,'js','page');else selectLevel(LEVELS[0].id,progress.language,'robot');document.querySelector('.mission-intro').scrollIntoView({block:'start',behavior:renderer.reduced?'instant':'smooth'});});
 function updateSound(){const label=progress.sound?'关闭音效':'开启音效';$('sound-button').setAttribute('aria-label',label);$('sound-button').setAttribute('title',label);$('sound-button').setAttribute('aria-pressed',progress.sound);$('sound-icon').style.color=progress.sound?'var(--mint)':'var(--muted)';}
 $('sound-button').addEventListener('click',()=>{progress.sound=!progress.sound;updateSound();persist();tone('collect');toast(progress.sound?'音效已开启':'音效已关闭');});
 const manual=$('manual-dialog');
+manual.querySelector('.manual-content > p').textContent='欢迎来到代码实验室。机器人路线有 18 个循序渐进的实验，可用 JavaScript 或 Rust 完成；改造实验室路线有 6 个 JavaScript DOM 实验，直接修改当前网页。两条路线分别保存成绩和草稿。';
+const pageGuide=document.createElement('section');pageGuide.className='web-manual';
+pageGuide.innerHTML=`<h3>让真实网页成为实验室</h3><p>点击顶部“改造实验室”。代码会修改当前页面的名称、文字颜色、墙面、主题和信号灯；切关、切换路线或重置后恢复基准环境，已保存的代码草稿保留。</p><table><thead><tr><th>目标</th><th>支持的 JavaScript 示例</th></tr></thead><tbody><tr><td>顶部名称 / 标牌</td><td><code>document.querySelector('#lab-title').textContent = '星际实验室';</code><br><code>document.querySelector('#lab-poster').textContent = '探索开始';</code></td></tr><tr><td>标题颜色</td><td><code>document.querySelector('#lab-title').style.color = '#f6c65c';</code></td></tr><tr><td>整页墙面 / 顶部控制台</td><td><code>document.body.style.backgroundColor = '#142b3b';</code><br><code>document.querySelector('.topbar').style.backgroundColor = '#102b30';</code></td></tr><tr><td>整页强调色</td><td><code>document.documentElement.style.setProperty('--lab-accent', '#8bb8ff');</code></td></tr><tr><td>环境灯</td><td><code>document.querySelector('#lab-beacon').classList.add('on');</code><br><code>document.querySelector('#lab-beacon').classList.remove('on');</code></td></tr></tbody></table><p class="manual-note">网页路线支持上述指定目标、API、字符串常量和单行注释；颜色接受 3 / 6 位十六进制，文字最多 80 字，单次最多 64 条操作。代码先完整检查再修改页面；不支持任意 DOM、HTML 注入、外部网络、函数、变量或循环。机器人路线继续支持对应的变量、循环与条件语法。</p>`;
+manual.querySelector('.manual-content').insertBefore(pageGuide,manual.querySelector('.manual-content > h3'));
 function showManual(){if(mode==='running')run();manual.showModal();}
 $('manual-button').addEventListener('click',showManual);$('syntax-button').addEventListener('click',showManual);
-$('lab-tab').addEventListener('click',()=>{if(manual.open)manual.close();code.focus();});
+$('lab-tab').addEventListener('click',()=>{if(manual.open)manual.close();if(track!=='robot')selectLevel(progress.levelId,progress.language,'robot');code.focus();});
+$('page-tab').addEventListener('click',()=>{if(manual.open)manual.close();if(track!=='page')selectLevel(progress.pageLevelId,'js','page');code.focus();});
 $('close-manual').addEventListener('click',()=>manual.close());$('manual-start').addEventListener('click',()=>{manual.close();code.focus();});
 manual.addEventListener('click',event=>{if(event.target===manual){const box=manual.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)manual.close();}});
 document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'&&!manual.open){event.preventDefault();run();}});

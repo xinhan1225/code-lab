@@ -10,6 +10,8 @@ export class LabRenderer {
     this.from = null;
     this.started = 0;
     this.duration = 240;
+    this.celebrationStarted = null;
+    this.particles = [];
     this.reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
@@ -29,6 +31,16 @@ export class LabRenderer {
     this.canvas.height = Math.round(box.height * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
+  celebrate() {
+    this.celebrationStarted = performance.now();
+    this.canvas.dataset.celebrating = 'true';
+    this.particles = this.reduced ? [] : Array.from({length:60},(_,i)=>({vx:(Math.random()-.5)*150,vy:-70-Math.random()*100,delay:Math.random()*.25,color:['#9ae6ca','#f6c65c','#8bb8ff','#f1b399'][i%4],size:2+Math.random()*3,rotation:Math.random()*6}));
+  }
+  clearCelebration() {
+    this.celebrationStarted = null;
+    this.particles = [];
+    this.canvas.dataset.celebrating = 'false';
+  }
   setScene(level, state, duration = 240) {
     const changed = this.level !== level;
     this.from = changed || !this.pose ? { x: state.x, y: state.y } : { ...this.pose };
@@ -36,7 +48,6 @@ export class LabRenderer {
     this.state = state;
     this.started = performance.now();
     this.duration = this.reduced ? 1 : duration;
-    this.canvas.setAttribute('aria-label', `实验 ${level.id}：${level.name}。机器人在第 ${state.x + 1} 列、第 ${state.y + 1} 行，朝${['北', '东', '南', '西'][state.dir]}。已收集 ${state.collected.length} / ${getLevelInfo(level).batteries.length} 块能量。${state.won ? '已到达出口并完成实验。' : ''}`);
   }
   project(x, y, z = 0) { return { x: this.ox + (x - y) * this.tw / 2, y: this.oy + (x + y) * this.th / 2 - z }; }
   polygon(points, fill, stroke, lineWidth = 1) {
@@ -65,6 +76,7 @@ export class LabRenderer {
   draw(time) {
     const c = this.ctx, {width,height} = this, level = this.level, state = this.state, info = getLevelInfo(level);
     if (!width || !height) return;
+    if(this.celebrationStarted!==null&&time-this.celebrationStarted>3200)this.clearCelebration();
     c.clearRect(0,0,width,height);
     const span = info.width + info.height;
     this.tw = Math.min((width-48)*2/span,(height-98)*3.4/span,74);
@@ -123,6 +135,7 @@ export class LabRenderer {
     const flag = this.project(info.exit.x,info.exit.y,this.tw*.68);
     c.save();c.strokeStyle='#91e7c788';c.setLineDash([2,3]);c.beginPath();c.moveTo(exit.x,exit.y-5);c.lineTo(flag.x,flag.y+8);c.stroke();c.setLineDash([]);
     c.fillStyle='#153e35';c.strokeStyle='#80cdb1';c.lineWidth=.8;c.beginPath();c.roundRect(flag.x-21,flag.y-10,42,17,3);c.fill();c.stroke();c.font='8px Consolas';c.fillStyle='#b6f6d8';c.textAlign='center';c.fillText(state.won?'CLEAR':'EXIT ↗',flag.x,flag.y+1);c.restore();
+    if(this.celebrationStarted!==null)this.drawCelebration(time);
     // Small registration marks give the scene the feel of a live laboratory feed.
     c.strokeStyle='#345751';c.lineWidth=1;
     [[15,31,1,1],[width-15,31,-1,1],[15,height-40,1,-1],[width-15,height-40,-1,-1]].forEach(([x,y,dx,dy])=>{c.beginPath();c.moveTo(x+dx*8,y);c.lineTo(x,y);c.lineTo(x,y+dy*8);c.stroke();});
@@ -130,7 +143,9 @@ export class LabRenderer {
   robot(x,y,tw,time,pulse){
     const c=this.ctx,s=tw/64,state=this.state;
     c.save();c.translate(x,y);c.scale(s,s);
+    const celebration=this.celebrationStarted===null?0:Math.max(0,1-(time-this.celebrationStarted)/2400);
     c.fillStyle='#0007';c.beginPath();c.ellipse(2,2,17,7,0,0,Math.PI*2);c.fill();
+    if(celebration&&!this.reduced)c.translate(0,-Math.abs(Math.sin((time-this.celebrationStarted)/150))*13*celebration);
     c.strokeStyle=state.status==='error'?'#de9482':'#80cdb1';c.lineWidth=1;c.beginPath();c.ellipse(0,2,18,8,0,0,Math.PI*2);c.stroke();
     const vectors=[[.7,-.4],[.7,.4],[-.7,.4],[-.7,-.4]],v=vectors[state.dir];
     c.save();c.translate(v[0]*29,v[1]*29);c.rotate(Math.atan2(v[1],v[0]));c.fillStyle='#92d6bf';c.beginPath();c.moveTo(6,0);c.lineTo(-4,-4);c.lineTo(-1,0);c.lineTo(-4,4);c.closePath();c.fill();c.restore();
@@ -138,12 +153,23 @@ export class LabRenderer {
     c.fillStyle='#8aa39d';c.beginPath();c.roundRect(-11,-22,23,24,6);c.fill();
     c.fillStyle='#d9e1ce';c.beginPath();c.roundRect(-13,-27,24,25,7);c.fill();
     c.fillStyle='#acbeb3';c.fillRect(-6,-13,12,6);c.fillStyle='#4d6f66';c.fillRect(-2,-11,4,2);
-    c.fillStyle='#6e8d88';c.fillRect(-17,-25,5,16);c.fillRect(11,-23,5,15);
+    c.fillStyle='#6e8d88';
+    if(celebration&&!this.reduced){c.save();c.translate(-14,-23);c.rotate(.7+Math.sin(time/110)*.3);c.fillRect(-3,-14,5,16);c.restore();c.save();c.translate(13,-22);c.rotate(-.7-Math.sin(time/110)*.3);c.fillRect(-2,-14,5,16);c.restore();}
+    else{c.fillRect(-17,-25,5,16);c.fillRect(11,-23,5,15);}
     c.save();c.rotate(-.07);c.fillStyle='#a7bab0';c.beginPath();c.roundRect(-17,-47,35,25,8);c.fill();
     c.fillStyle='#e1e6d6';c.beginPath();c.roundRect(-18,-48,32,23,7);c.fill();
     c.fillStyle='#153b36';c.beginPath();c.roundRect(-13,-43,23,13,4);c.fill();
     c.shadowColor=state.status==='error'?'#ff9d84':'#9affe0';c.shadowBlur=7;c.fillStyle=state.status==='error'?'#eead8b':'#a8f7d5';c.beginPath();c.roundRect(-8,-40,4,7,2);c.roundRect(2,-40,4,7,2);c.fill();c.shadowBlur=0;
     c.strokeStyle='#9abbb0';c.lineWidth=2;c.beginPath();c.moveTo(-2,-48);c.lineTo(-2,-55);c.stroke();this.glow(-2,-58,9,'#9ae6ca55');c.fillStyle=state.status==='error'?'#eeb994':'#aff5d4';c.beginPath();c.arc(-2,-58,2.7+.25*pulse,0,Math.PI*2);c.fill();c.restore();
     c.restore();
+  }
+  drawCelebration(time){
+    const c=this.ctx,elapsed=(time-this.celebrationStarted)/1000,origin=this.project(this.pose.x,this.pose.y),fade=Math.max(0,1-elapsed/3.2);
+    c.save();c.globalAlpha=fade;
+    this.glow(origin.x,origin.y-25,75,'#9ae6ca30');
+    c.strokeStyle='#9ae6ca';c.lineWidth=1.5;
+    for(let i=0;i<3;i++){const phase=((this.reduced ? 0.2 : elapsed*.7)+i/3)%1;c.globalAlpha=fade*(1-phase)*.65;c.beginPath();c.ellipse(origin.x,origin.y,20+phase*72,8+phase*30,0,0,Math.PI*2);c.stroke();}
+    for(const p of this.particles){const t=elapsed-p.delay;if(t<0)continue;c.save();c.globalAlpha=fade;c.translate(origin.x+p.vx*t,origin.y-35+p.vy*t+45*t*t);c.rotate(p.rotation+t*4);c.fillStyle=p.color;c.fillRect(-p.size/2,-p.size/2,p.size,p.size*.6);c.restore();}
+    c.globalAlpha=fade;c.fillStyle='#b7f5d9';c.font='bold 10px Consolas';c.textAlign='center';c.fillText('EXPERIMENT COMPLETE',origin.x,origin.y-85-(this.reduced?0:elapsed*5));c.restore();
   }
 }

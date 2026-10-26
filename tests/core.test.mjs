@@ -69,7 +69,7 @@ test('comments, numeric variables and loop-local counters work', () => {
 });
 
 test('conditions evaluate the current position and both branches are reachable', () => {
-  const level = LEVELS[1];
+  const level = LEVELS.find(item => item.id === 2);
   const state = run(level, 'for(let i=0;i<5;i++){if(pathAhead()){forward();}else{turnLeft();}}', 'js');
   assert.equal(state.won, true);
   assert.equal(state.moves, 4);
@@ -123,7 +123,7 @@ test('attached Wasm-shaped rules receive map bits and control movement', () => {
 });
 
 test('rectangular level data includes exactly one start and exit', () => {
-  assert.equal(LEVELS.length, 6);
+  assert.equal(LEVELS.length, 18);
   for (const level of LEVELS) {
     const info = getLevelInfo(level);
     assert.ok(info.width <= 7 && info.height <= 7);
@@ -132,4 +132,54 @@ test('rectangular level data includes exactly one start and exit', () => {
     assert.equal(level.hints.length, 3);
   }
   assert.throws(() => getLevelInfo({rows:['S#','E'],startDir:0}), /矩形/);
+});
+
+test('curriculum preserves saved IDs and increases difficulty gently', () => {
+  assert.deepEqual(LEVELS.map(level => level.id), [7, 8, 1, 9, 10, 2, 11, 12, 3, 13, 4, 14, 15, 5, 16, 17, 6, 18]);
+  assert.equal(new Set(LEVELS.map(level => level.id)).size, 18);
+  for (let id = 1; id <= 6; id++) assert.ok(LEVELS.find(level => level.id === id));
+  for (let index = 0; index < LEVELS.length; index++) {
+    const level = LEVELS[index];
+    assert.ok(['基础控制', '循环思维', '变量与判断', '综合应用'].includes(level.stage));
+    assert.ok(Number.isInteger(level.difficulty) && level.difficulty >= 1 && level.difficulty <= 5);
+    assert.ok(typeof level.newSkill === 'string' && level.newSkill.length > 0);
+    assert.ok(Number.isInteger(level.suggestedMinutes) && level.suggestedMinutes > 0);
+    if (index) {
+      const increase = level.difficulty - LEVELS[index - 1].difficulty;
+      assert.ok(increase >= 0 && increase <= 1);
+    }
+  }
+});
+
+test('first steps isolate calls and turns before combined routes', () => {
+  const first = LEVELS.find(level => level.id === 7);
+  assert.equal(getLevelInfo(first).batteries.length, 0);
+  assert.deepEqual(compile(first.starters.js, 'js'), []);
+  assert.equal(run(first, first.solutions.js, 'js').moves, 1);
+  assert.equal(run(LEVELS.find(level => level.id === 8), 'forward();forward();', 'js').won, true);
+  for (const [id, turn] of [[9, 'left'], [10, 'right']]) {
+    const level = LEVELS.find(level => level.id === id);
+    assert.deepEqual(compile(level.solutions.js, 'js').map(command => command.op), [turn, 'forward']);
+    assert.equal(run(level, level.solutions.js, 'js').steps, 2);
+  }
+});
+
+test('single conditions introduce each branch before repeated sensor checks', () => {
+  for (const language of ['js', 'rust']) {
+    const yes = LEVELS.find(level => level.id === 14);
+    const no = LEVELS.find(level => level.id === 15);
+    assert.equal(isPathAhead(yes, createState(yes)), true);
+    assert.equal(isPathAhead(no, createState(no)), false);
+    assert.equal(compile(yes.solutions[language], language).length, 1);
+    assert.equal(run(yes, yes.solutions[language], language).steps, 1);
+    assert.equal(run(no, no.solutions[language], language).steps, 2);
+    const right = LEVELS.find(level => level.id === 16);
+    assert.equal(run(right, right.solutions[language], language).moves, 4);
+    assert.equal(run(right, right.solutions[language], language).steps, 5);
+    const final = LEVELS.find(level => level.id === 18);
+    const state = run(final, final.solutions[language], language);
+    assert.equal(state.moves, 13);
+    assert.equal(state.steps, 16);
+    assert.equal(state.collected.length, 3);
+  }
 });

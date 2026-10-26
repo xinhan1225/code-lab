@@ -30,10 +30,19 @@ try{
   await waitFor("document.documentElement.dataset.engine === 'rust-wasm'");
   await sleep(400);await screenshot('desktop.png');
   console.log('PASS: initial desktop, actual Rust Wasm loaded');
+  assert.match(await evaluate("document.getElementById('board').getAttribute('aria-label')"),/^实验 1：/);
   const setCode=async(value)=>evaluate(`(() => {const el=document.getElementById('code');el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('input'));return true;})()`);
   const click=selector=>evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
   const text=id=>evaluate(`document.getElementById(${JSON.stringify(id)}).textContent`);
   const levels=await evaluate("import('./levels.mjs').then(m=>m.LEVELS)");
+  const pages=await evaluate("import('./page-lab.mjs').then(m=>m.PAGE_LEVELS)");
+  const originalFirst=levels.find(level=>level.id===1),originalCorner=levels.find(level=>level.id===2);
+  await evaluate(`localStorage.setItem('code-lab-progress-v1',JSON.stringify({language:'js',levelId:1,completed:{js:[1,2,3,4,5,6],rust:[2]},drafts:{'js:1':'// 旧版本草稿\\nforward();'}}));location.reload();true`);
+  await waitFor("document.documentElement.dataset.engine === 'rust-wasm'");
+  assert.match(await text('progress-count'),/6.*18/s);assert.match(await evaluate("document.getElementById('code').value"),/旧版本草稿/);
+  assert.equal(await evaluate("document.querySelector('[data-level=\"1\"] .number').textContent"),'03');
+  await evaluate('localStorage.clear();location.reload();true');await waitFor("document.documentElement.dataset.engine === 'rust-wasm'");
+  console.log('PASS: old six-lesson progress and draft identities preserved');
   // A draft should survive a real reload, not merely an in-memory switch.
   await setCode('// 保存我的草稿\nforward();\nforward();');
   await evaluate('location.reload();true');await waitFor("document.documentElement.dataset.engine === 'rust-wasm'");
@@ -49,21 +58,52 @@ try{
       console.log(`PASS: ${language} mission ${level.id}`);
     }
     const saved=await evaluate("JSON.parse(localStorage.getItem('code-lab-progress-v1'))");
-    assert.equal(saved.completed[language].length,6);
+    assert.equal(saved.completed[language].length,levels.length);
   }
-  await screenshot('completed.png');
+  await sleep(450);await screenshot('completed.png');
+  assert.equal(await evaluate("document.getElementById('board').dataset.celebrating"),'true');
+  console.log('PASS: robot celebrates on real completion');
   await click('[data-language="js"]');await click('[data-level="1"]');
-  await setCode(levels[0].solutions.js);await click('#step-button');
+  await setCode(originalFirst.solutions.js);await click('#step-button');
+  assert.equal(await evaluate("document.getElementById('board').dataset.celebrating"),'false');
   assert.match(await text('steps-count'),/^1 条/);assert.match(await text('board-badge'),/暂停/);
   await click('#step-button');assert.match(await text('steps-count'),/^2 条/);
   console.log('PASS: single-step advances exactly one command');
-  await click('[data-level="2"]');await setCode(levels[1].solutions.js);await click('[data-speed="0.5"]');await click('#run-button');await click('#run-button');
+  await click('[data-level="2"]');await setCode(originalCorner.solutions.js);await click('[data-speed="0.5"]');await click('#run-button');await click('#run-button');
   const paused=await text('steps-count');await sleep(700);assert.equal(await text('steps-count'),paused);
   await click('#reset-button');await sleep(700);assert.match(await text('steps-count'),/^0 条/);
   console.log('PASS: pause and reset cancel scheduled execution');
   await setCode('turnLeft();\nforward();\nforward();\nforward();\nforward();\nforward();');await click('[data-speed="4"]');await click('#run-button');await waitFor("document.getElementById('board-badge').classList.contains('error')");assert.match(await text('console'),/前方是墙/);
   await setCode('while (true) { forward(); }');await click('#run-button');assert.match(await text('console'),/暂不支持/);
   console.log('PASS: collision and unsupported code report errors without hanging');
+  await click('#page-tab');assert.equal(await evaluate('document.documentElement.dataset.track'),'page');
+  assert.match(await evaluate("document.getElementById('board').getAttribute('aria-label')"),/^网页实验/);
+  assert.equal(await evaluate("document.getElementById('tab-rust').disabled"),true);
+  for(const page of pages){
+    await click(`[data-level="${page.id}"]`);
+    assert.equal(await evaluate("document.getElementById('lab-title').textContent"),'CODE LAB.');
+    assert.equal(await evaluate("document.body.style.backgroundColor"),'');
+    assert.equal(await evaluate("document.documentElement.style.getPropertyValue('--lab-accent')"),'');
+    assert.equal(await evaluate("document.getElementById('lab-beacon').classList.contains('on')"),false);
+    await setCode(page.solutions.js);await click('#run-button');await waitFor("!document.getElementById('completion').hidden");
+    const checks=await evaluate(`import('./page-lab.mjs').then(m=>m.checkPageGoals(m.PAGE_LEVELS.find(x=>x.id===${page.id}),document))`);
+    assert.ok(checks.every(check=>check.passed));
+    assert.equal(await evaluate("document.getElementById('board').dataset.celebrating"),'true');
+    console.log(`PASS: real webpage experiment ${page.id}, all DOM goals met`);
+  }
+  await sleep(450);await screenshot('web-lab-complete.png');
+  assert.deepEqual(await evaluate("JSON.parse(localStorage.getItem('code-lab-progress-v1')).pageCompleted"),[1,2,3,4,5,6]);
+  await click('#next-button');assert.equal(await evaluate('document.documentElement.dataset.track'),'robot');
+  assert.equal(await evaluate("document.getElementById('lab-title').textContent"),'CODE LAB.');
+  assert.equal(await evaluate("document.body.style.backgroundColor"),'');
+  assert.equal(await evaluate("document.getElementById('board').dataset.celebrating"),'false');
+  await click('#page-tab');await click('[data-level="1"]');
+  await setCode("document.querySelector('#lab-title').textContent = '不应执行'; alert('blocked');");await click('#run-button');
+  assert.equal(await evaluate("document.getElementById('lab-title').textContent"),'CODE LAB.');assert.match(await text('console'),/需要 document/);
+  await setCode(pages[0].solutions.js);await click('#step-button');assert.equal(await evaluate("document.getElementById('lab-title').textContent"),'星际实验室');
+  await click('#reset-button');assert.equal(await evaluate("document.getElementById('lab-title').textContent"),'CODE LAB.');
+  await click('#lab-tab');
+  console.log('PASS: page/track/reset clear effects and celebration, invalid code has no partial effects');
   await click('#manual-button');assert.equal(await evaluate("document.getElementById('manual-dialog').open"),true);await screenshot('manual.png');await click('#close-manual');
   await click('[data-level="1"]');await click('#reset-button');await setCode('// <img src=x onerror=alert(1)>\nforward();');assert.equal(await evaluate("document.querySelectorAll('.editor-surface img').length"),0);
   await click('#reset-button');
@@ -71,12 +111,19 @@ try{
   const mobileSize=await evaluate('({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,inner:window.innerWidth})');
   assert.ok(mobileSize.scroll<=390,JSON.stringify(mobileSize));
   await screenshot('mobile.png');
+  await click('#page-tab');await click('[data-level="6"]');await sleep(150);
+  assert.ok(await evaluate('document.documentElement.scrollWidth<=390'));
+  await screenshot('mobile-web.png');await click('#lab-tab');
+  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+  await evaluate('location.reload();true');await waitFor("document.documentElement.dataset.engine === 'rust-wasm'");
+  await click(`[data-level="${levels[0].id}"]`);await setCode(levels[0].solutions.js);await click('#run-button');await waitFor("!document.getElementById('completion').hidden");
+  console.log('PASS: reduced-motion mode remains playable');
   console.log('PASS: manual, escaped editor content, 390px mobile layout');
   await send('Page.addScriptToEvaluateOnNewDocument',{source:"Storage.prototype.getItem=function(){throw new Error('blocked')};Storage.prototype.setItem=function(){throw new Error('blocked')};"});
   await evaluate('location.reload();true');await waitFor("document.documentElement.dataset.engine === 'rust-wasm'");
   await setCode(levels[0].solutions.js);await click('[data-speed="4"]');await click('#run-button');await waitFor("!document.getElementById('completion').hidden");
   console.log('PASS: playable with browser storage blocked');
   assert.deepEqual(errors,[]);console.log('PASS: no uncaught browser exceptions');
-  await writeFile(path.join(artifacts,'browser-results.json'),JSON.stringify({date:new Date().toISOString(),browser:'Microsoft Edge (headless, real browser)',passed:true,missions:12,engine:'rust-wasm',checks:['draft reload','single step','pause/reset','collision','unsupported code','manual','escaped editor content','mobile overflow','blocked storage','no uncaught exceptions']},null,2));
+  await writeFile(path.join(artifacts,'browser-results.json'),JSON.stringify({date:new Date().toISOString(),browser:'Microsoft Edge (headless, real browser)',passed:true,missions:levels.length*2+pages.length,engine:'rust-wasm',checks:['old progress migration','draft reload','single step','pause/reset','collision','unsupported code','6 real DOM experiments','page effect reset','celebration start/reset','manual','escaped editor content','mobile overflow both tracks','reduced motion','blocked storage','no uncaught exceptions']},null,2));
   await send('Browser.close');
 }finally{ws?.close();child.kill();}
