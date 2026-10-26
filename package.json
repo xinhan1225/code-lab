@@ -1,0 +1,11 @@
+{
+  "name": "code-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "JavaScript and Rust robot maze learning game",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
+}
