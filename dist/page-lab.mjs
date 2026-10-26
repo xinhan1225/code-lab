@@ -3,7 +3,8 @@ const titleColor = "document.querySelector('#lab-title').style.color = '#f6c65c'
 const wallColor = "document.body.style.backgroundColor = '#142b3b';";
 const accentColor = "document.documentElement.style.setProperty('--lab-accent', '#8bb8ff');";
 const beaconOn = "document.querySelector('#lab-beacon').classList.add('on');";
-const posterText = "document.querySelector('#lab-poster').textContent = '探索，从这一行代码开始。';";
+
+export const BODY_CLASSES = ['starfield', 'blueprint', 'hologram', 'zero-gravity', 'dance-mode', 'scan-mode', 'mirror-world', 'night-shift', 'party-mode'];
 
 export const PAGE_LEVELS = [
   {
@@ -57,20 +58,172 @@ export const PAGE_LEVELS = [
     checks: [{label: '#lab-beacon 包含 on 类名，信号灯已亮', op: 'class', target: '#lab-beacon', action: 'add', value: 'on'}],
   },
   {
+    id: 7, name: '海底控制室', title: '让实验室潜入深海', concept: '组合不同元素的样式',
+    stage: '场景变身', difficulty: 3, newSkill: '选择 .topbar 并设置背景', suggestedMinutes: 4,
+    objective: '把标题改为「海底控制室」，整页背景设为 #062a35，顶部 .topbar 背景设为 #0b4650，打造潜艇驾驶舱。',
+    starters: {js: "// 驾驶舱、海水和控制台分别改造\ndocument.querySelector('#lab-title').textContent = '海底控制室';\ndocument.body.style.backgroundColor = '#142b3b';\ndocument.querySelector('.topbar').style.backgroundColor = '#142b3b';"},
+    solutions: {js: "document.querySelector('#lab-title').textContent = '海底控制室';\ndocument.body.style.backgroundColor = '#062a35';\ndocument.querySelector('.topbar').style.backgroundColor = '#0b4650';"},
+    hints: ['这次有三个目标：名称、整页墙面、顶部控制台。', '.topbar 选择顶部控制台，背景属性仍是 backgroundColor。', '两种背景颜色依次是 #062a35 与 #0b4650。'],
+    explanation: {js: '相同的样式属性可以用在不同元素上。组合标题与两块背景，就能让熟悉的页面变成一个新场景。'},
+    checks: [
+      {label: '驾驶舱叫「海底控制室」', op: 'text', target: '#lab-title', value: '海底控制室'},
+      {label: '深海墙面是 #062a35', op: 'style', target: 'body', property: 'backgroundColor', value: '#062a35'},
+      {label: '顶部控制台是 #0b4650', op: 'style', target: '.topbar', property: 'backgroundColor', value: '#0b4650'},
+    ],
+  },
+  {
+    id: 8, name: '星空开窗', title: '把舷窗外的星星请进来', concept: '类名启动整页效果',
+    stage: '场景变身', difficulty: 3, newSkill: 'document.body.classList.add', suggestedMinutes: 3,
+    objective: '给 document.body 添加 starfield 类名，让实验室的墙面出现星空。',
+    starters: {js: "// 星星的开关写在 body 的类名中\ndocument.body.classList.remove('starfield');"},
+    solutions: {js: "document.body.classList.add('starfield');"},
+    hints: ['这次效果开关在 document.body 上。', 'starfield 代表星空场景，拼写中没有空格。', "用 classList.add('starfield') 打开星空。"],
+    explanation: {js: '类名也能控制整页视觉效果。把 starfield 加到 body，页面就会套用准备好的星空样式。'},
+    checks: [{label: '星空舷窗已打开', op: 'class', target: 'body', action: 'add', value: 'starfield'}],
+  },
+  {
+    id: 9, name: '蓝图扫描', title: '看见实验室的设计网格', concept: '用类名切换观察方式',
+    stage: '场景变身', difficulty: 3, newSkill: 'blueprint 场景类名', suggestedMinutes: 3,
+    objective: '给 document.body 添加 blueprint 类名，展开实验室的蓝图与网格。',
+    starters: {js: "// 打开工程师的蓝图视图\ndocument.body.classList.remove('blueprint');"},
+    solutions: {js: "document.body.classList.add('blueprint');"},
+    hints: ['蓝图也是 body 的一个场景开关。', '类名写作 blueprint，放在引号里。', '将 remove 改成 add，展开设计网格。'],
+    explanation: {js: 'JavaScript 只改变类名，蓝图的网格与线条由 CSS 绘制。一个状态开关能同时改变多个区域。'},
+    checks: [{label: '蓝图网格已展开', op: 'class', target: 'body', action: 'add', value: 'blueprint'}],
+  },
+  {
+    id: 10, name: '全息投影', title: '启动青色全息工作台', concept: '场景类名与主题变量组合',
+    stage: '场景变身', difficulty: 3, newSkill: 'hologram 与主题色联动', suggestedMinutes: 4,
+    objective: '给 body 添加 hologram，并把根元素的 --lab-accent 设为 #63f4df，让工作台变成青色全息投影。',
+    starters: {js: "// 全息开关与投影颜色可以各自控制\ndocument.body.classList.add('hologram');\ndocument.documentElement.style.setProperty('--lab-accent', '#8bb8ff');"},
+    solutions: {js: "document.body.classList.add('hologram');\ndocument.documentElement.style.setProperty('--lab-accent', '#63f4df');"},
+    hints: ['先用 body 的 hologram 开关启动投影。', '投影的强调色由根元素上的 --lab-accent 控制。', '把 setProperty 的第二个参数改为 #63f4df。'],
+    explanation: {js: '场景负责材质，主题变量负责强调色。两种操作组合后，同一个全息场景就有了指定的投影颜色。'},
+    checks: [
+      {label: '全息投影已启动', op: 'class', target: 'body', action: 'add', value: 'hologram'},
+      {label: '投影强调色是 #63f4df', op: 'css-variable', target: 'root', property: '--lab-accent', value: '#63f4df'},
+    ],
+  },
+  {
+    id: 11, name: '失重实验', title: '让工作台漂浮在星空中', concept: '多个类名叠加效果',
+    stage: '动态实验', difficulty: 3, newSkill: '叠加 starfield 与 zero-gravity', suggestedMinutes: 4,
+    objective: '给 body 分别添加 starfield 和 zero-gravity，让工作台在星空中进入失重状态。',
+    starters: {js: "// 每条语句打开一种效果\ndocument.body.classList.add('starfield');\ndocument.body.classList.remove('zero-gravity');"},
+    solutions: {js: "document.body.classList.add('starfield');\ndocument.body.classList.add('zero-gravity');"},
+    hints: ['星空与失重是两个独立类名。', '每次 add 使用一个类名，分成两条语句。', '把第二条语句的 remove 改为 add，让工作台漂浮。'],
+    explanation: {js: '元素可以同时拥有多个类名。添加 zero-gravity 不会移除已有的 starfield，所以两种效果可以一起出现。'},
+    checks: [
+      {label: '星空背景已打开', op: 'class', target: 'body', action: 'add', value: 'starfield'},
+      {label: '失重实验已启动', op: 'class', target: 'body', action: 'add', value: 'zero-gravity'},
+    ],
+  },
+  {
+    id: 12, name: '机器人舞台', title: '给机器人办一场演出', concept: '状态与文字一起编排',
+    stage: '动态实验', difficulty: 4, newSkill: 'dance-mode 与舞台命名', suggestedMinutes: 4,
+    objective: '给 body 添加 dance-mode，再把标题改为「机器人舞台」，邀请机器人登台跳舞。',
+    starters: {js: "// 先挂牌，再打开舞蹈开关\ndocument.querySelector('#lab-title').textContent = '演出准备中';\ndocument.body.classList.remove('dance-mode');"},
+    solutions: {js: "document.querySelector('#lab-title').textContent = '机器人舞台';\ndocument.body.classList.add('dance-mode');"},
+    hints: ['舞台名称仍由 #lab-title 的 textContent 修改。', '让机器人跳舞的类名是 dance-mode。', '标题写成「机器人舞台」，并向 body 添加舞蹈类名。'],
+    explanation: {js: '文字告诉观众场景的含义，类名让场景动起来。一段程序可以同时负责演出名称和演出状态。'},
+    checks: [
+      {label: '舞台已命名为「机器人舞台」', op: 'text', target: '#lab-title', value: '机器人舞台'},
+      {label: '机器人舞蹈已开始', op: 'class', target: 'body', action: 'add', value: 'dance-mode'},
+    ],
+  },
+  {
+    id: 13, name: '激光巡检', title: '让扫描光掠过设计图', concept: '静态场景与动态扫描组合',
+    stage: '动态实验', difficulty: 4, newSkill: 'scan-mode 与 blueprint 组合', suggestedMinutes: 4,
+    objective: '给 body 添加 blueprint 和 scan-mode，让激光扫描实验室的蓝图。',
+    starters: {js: "// 网格是巡检的地图，还需要一道扫描光\ndocument.body.classList.add('blueprint');"},
+    solutions: {js: "document.body.classList.add('blueprint');\ndocument.body.classList.add('scan-mode');"},
+    hints: ['蓝图类名 blueprint 提供巡检地图。', '扫描类名是 scan-mode，写在 body 上。', "补上一条 document.body.classList.add('scan-mode');"],
+    explanation: {js: '先铺好蓝图，再启动扫描。同一个元素上的不同类名各自控制一种效果，组合起来就是完整的巡检场景。'},
+    checks: [
+      {label: '巡检蓝图已展开', op: 'class', target: 'body', action: 'add', value: 'blueprint'},
+      {label: '激光巡检已启动', op: 'class', target: 'body', action: 'add', value: 'scan-mode'},
+    ],
+  },
+  {
+    id: 14, name: '镜像观察', title: '从镜子另一边观察实验', concept: '控制观察视角',
+    stage: '动态实验', difficulty: 4, newSkill: 'mirror-world 场景类名', suggestedMinutes: 4,
+    objective: '给 body 添加 mirror-world，再把标题改为「镜像观察站」，看看工作台翻转后的样子。',
+    starters: {js: "// 镜像改变工作台的观察方向\ndocument.querySelector('#lab-title').textContent = '镜像观察站';\ndocument.body.classList.remove('mirror-world');"},
+    solutions: {js: "document.querySelector('#lab-title').textContent = '镜像观察站';\ndocument.body.classList.add('mirror-world');"},
+    hints: ['镜像观察的类名是 mirror-world。', '将它添加到 body，工作台就会切换视角。', '保留「镜像观察站」标题，把 remove 改为 add。'],
+    explanation: {js: '类名不只能控制颜色与动画，还能切换空间变换。工作台的镜像外观由 CSS 处理，按钮和文字继续正常使用。'},
+    checks: [
+      {label: '标题是「镜像观察站」', op: 'text', target: '#lab-title', value: '镜像观察站'},
+      {label: '镜像观察已开启', op: 'class', target: 'body', action: 'add', value: 'mirror-world'},
+    ],
+  },
+  {
+    id: 15, name: '深夜航行', title: '在暗夜里点亮航行信号', concept: '整页与局部状态组合',
+    stage: '动态实验', difficulty: 4, newSkill: 'night-shift 与信号灯协作', suggestedMinutes: 4,
+    objective: '给 body 添加 night-shift，并给 #lab-beacon 添加 on，在夜航场景中点亮信号灯。',
+    starters: {js: "// 夜航需要暗下来的船舱和亮起的信号灯\ndocument.body.classList.add('night-shift');\ndocument.querySelector('#lab-beacon').classList.remove('on');"},
+    solutions: {js: "document.body.classList.add('night-shift');\n" + beaconOn},
+    hints: ['night-shift 是整页的夜航开关。', '信号灯由 #lab-beacon 上的 on 控制。', '两处都用 add：body 开夜航，信号灯开灯。'],
+    explanation: {js: 'body 的状态控制整体环境，信号灯的状态控制局部提示。分别选择正确目标，就能精确编排夜航场景。'},
+    checks: [
+      {label: '夜航场景已开启', op: 'class', target: 'body', action: 'add', value: 'night-shift'},
+      {label: '航行信号灯已亮', op: 'class', target: '#lab-beacon', action: 'add', value: 'on'},
+    ],
+  },
+  {
+    id: 16, name: '舞池开场', title: '启动机器人的霓虹派对', concept: '多个状态与主题组合',
+    stage: '场景导演', difficulty: 5, newSkill: '编排派对、舞蹈与主题色', suggestedMinutes: 5,
+    objective: '给 body 添加 party-mode 和 dance-mode，并把 --lab-accent 设为 #ff80cf，开启粉色霓虹舞池。',
+    starters: {js: "// 灯光、舞步和主题色都准备好，派对才能开始\ndocument.body.classList.add('party-mode');"},
+    solutions: {js: "document.body.classList.add('party-mode');\ndocument.body.classList.add('dance-mode');\ndocument.documentElement.style.setProperty('--lab-accent', '#ff80cf');"},
+    hints: ['party-mode 打开派对灯光，dance-mode 邀请机器人跳舞。', '两个类名都添加到 body，用两条 add 语句。', '最后设置根元素的 --lab-accent，颜色是 #ff80cf。'],
+    explanation: {js: '多个状态加上主题变量，可以共同组成一场演出。每个开关有清楚的职责，组合后的效果仍然容易修改。'},
+    checks: [
+      {label: '派对灯光已打开', op: 'class', target: 'body', action: 'add', value: 'party-mode'},
+      {label: '机器人已加入舞池', op: 'class', target: 'body', action: 'add', value: 'dance-mode'},
+      {label: '霓虹主题色是 #ff80cf', op: 'css-variable', target: 'root', property: '--lab-accent', value: '#ff80cf'},
+    ],
+  },
+  {
+    id: 17, name: '停止派对', title: '让热闹的实验室安静下来', concept: '移除类名恢复状态',
+    stage: '场景导演', difficulty: 5, newSkill: '用 classList.remove 关闭效果', suggestedMinutes: 4,
+    objective: '派对已经开始了！从 body 移除 party-mode 和 dance-mode，让灯光与舞步一起停下来。',
+    setupCode: "document.body.classList.add('party-mode');\ndocument.body.classList.add('dance-mode');",
+    starters: {js: "// 这次要关掉效果，想想 add 应该换成什么\ndocument.body.classList.add('party-mode');\ndocument.body.classList.add('dance-mode');"},
+    solutions: {js: "document.body.classList.remove('party-mode');\ndocument.body.classList.remove('dance-mode');"},
+    hints: ['本关一开始，派对与跳舞开关都已经打开。', 'remove 是 add 的反向操作，用来移除指定类名。', '分别移除 party-mode 与 dance-mode，两行都用 remove。'],
+    explanation: {js: '添加类名打开效果，移除类名关闭效果。remove 只移除指定状态，body 上的其他类名继续保留。'},
+    checks: [
+      {label: '派对灯光已关闭', op: 'class', target: 'body', action: 'remove', value: 'party-mode'},
+      {label: '机器人舞步已停止', op: 'class', target: 'body', action: 'remove', value: 'dance-mode'},
+    ],
+  },
+  {
+    id: 18, name: '穿越星门', title: '组合一场太空跃迁', concept: '编排多重环境效果',
+    stage: '场景导演', difficulty: 5, newSkill: '星空、全息与失重的组合', suggestedMinutes: 5,
+    objective: '给 body 添加 starfield、hologram、zero-gravity，再把 --lab-accent 设为 #c19bff，开启紫色星门。',
+    starters: {js: "// 星门需要星空、全息、失重和紫色能量\ndocument.body.classList.add('starfield');"},
+    solutions: {js: "document.body.classList.add('starfield');\ndocument.body.classList.add('hologram');\ndocument.body.classList.add('zero-gravity');\ndocument.documentElement.style.setProperty('--lab-accent', '#c19bff');"},
+    hints: ['先把三个场景类名分别添加到 body。', '类名依次是 starfield、hologram、zero-gravity。', '根元素的 --lab-accent 设为 #c19bff，为星门注入紫色能量。'],
+    explanation: {js: '复杂场景也能由少量熟悉的操作组成。先启动三种环境效果，再统一主题色，就完成了一场太空跃迁。'},
+    checks: [
+      {label: '星空已展开', op: 'class', target: 'body', action: 'add', value: 'starfield'},
+      {label: '全息星门已启动', op: 'class', target: 'body', action: 'add', value: 'hologram'},
+      {label: '失重跃迁已启动', op: 'class', target: 'body', action: 'add', value: 'zero-gravity'},
+      {label: '星门能量色是 #c19bff', op: 'css-variable', target: 'root', property: '--lab-accent', value: '#c19bff'},
+    ],
+  },
+  {
     id: 6, name: '实验室总装', title: '组合已经学会的网页操作', concept: '文字、样式、主题与状态组合',
-    stage: '综合应用', difficulty: 4, newSkill: '组合前五关的操作', suggestedMinutes: 6,
-    objective: '把标题改为「星际实验室」、文字设为金色、墙面设为深蓝、主题设为浅蓝，点亮信号灯，并把 #lab-poster 标语改为「探索，从这一行代码开始。」。',
-    starters: {js: '// 综合前五关的操作：标题、标题颜色、墙面、主题、信号灯、#lab-poster 标语\n' + titleText},
-    solutions: {js: [titleText, titleColor, wallColor, accentColor, beaconOn, posterText].join('\n')},
-    hints: ['每条语句按书写顺序改变真实网页，每条语句末尾写分号。', '颜色依次为 #f6c65c、#142b3b、#8bb8ff。', '完成标题、墙面、主题与信号灯后，用 querySelector 选择 #lab-poster，再用 textContent 把墙面标语改为「探索，从这一行代码开始。」。'],
+    stage: '综合应用', difficulty: 5, newSkill: '组合标题、颜色、墙面、主题与信号灯', suggestedMinutes: 6,
+    objective: '完成最后的实验室总装：标题改为「星际实验室」、文字设为 #f6c65c、墙面设为 #142b3b、主题设为 #8bb8ff，并点亮信号灯。',
+    starters: {js: '// 综合前五关的操作：标题、标题颜色、墙面、主题、信号灯\n' + titleText},
+    solutions: {js: [titleText, titleColor, wallColor, accentColor, beaconOn].join('\n')},
+    hints: ['每条语句按书写顺序改变真实网页，每条语句末尾写分号。', '标题、墙面、主题的颜色依次为 #f6c65c、#142b3b、#8bb8ff。', '标题改为「星际实验室」，并向 #lab-beacon 添加 on 类名，让五个目标全部完成。'],
     explanation: {js: '一次运行可以组合多个已学过的 DOM 操作。下一关或重置时会恢复网页基准外观，可以放心重新实验。'},
     checks: [],
   },
 ];
-PAGE_LEVELS[5].checks = [
-  ...PAGE_LEVELS.slice(0, 5).flatMap(level => level.checks.map(check => ({...check}))),
-  {label: '#lab-poster 的标语是「探索，从这一行代码开始。」', op: 'text', target: '#lab-poster', value: '探索，从这一行代码开始。'},
-];
+PAGE_LEVELS.at(-1).checks = PAGE_LEVELS.slice(0, 5).flatMap(level => level.checks.map(check => ({...check})));
 
 const fail = (line, message) => { throw new Error(`第 ${line} 行：${message}`); };
 const colorPattern = /^#[\da-f]{3}(?:[\da-f]{3})?$/i;
@@ -78,7 +231,7 @@ const colorPattern = /^#[\da-f]{3}(?:[\da-f]{3})?$/i;
 function validateCommand(command) {
   const {op, target, property, value, action, line = 1} = command;
   if (typeof value !== 'string') fail(line, '参数必须使用引号包住的文字。');
-  if (op === 'text' && ['#lab-title', '#lab-poster'].includes(target)) {
+  if (op === 'text' && target === '#lab-title') {
     if ([...value].length > 80) fail(line, '文字最多 80 个字符。');
     return;
   }
@@ -91,6 +244,7 @@ function validateCommand(command) {
     return;
   }
   if (op === 'class' && target === '#lab-beacon' && value === 'on' && ['add', 'remove'].includes(action)) return;
+  if (op === 'class' && target === 'body' && BODY_CLASSES.includes(value) && ['add', 'remove'].includes(action)) return;
   fail(line, '暂不支持这个目标、属性或操作。请使用任务中的 DOM 示例。');
 }
 
@@ -152,7 +306,7 @@ export function compilePageCode(code) {
     let target;
     if (tokens[index]?.value === 'querySelector') {
       take('querySelector'); take('('); target = string(); take(')');
-      if (!['#lab-title', '#lab-poster', '#lab-beacon', '.topbar'].includes(target)) fail(line, '暂不支持这个选择器。请使用任务中的目标。');
+      if (!['#lab-title', '#lab-beacon', '.topbar'].includes(target)) fail(line, '暂不支持这个选择器。请使用任务中的目标。');
     }
     else if (tokens[index]?.value === 'body') { take('body'); target = 'body'; }
     else { take('documentElement'); target = 'root'; }
@@ -219,18 +373,20 @@ export function checkPageGoals(level, document) {
 }
 
 export function createPageSnapshot(document) {
-  const title = getTarget(document, '#lab-title'), poster = getTarget(document, '#lab-poster'), beacon = getTarget(document, '#lab-beacon');
-  const titleMarkup = title.innerHTML, posterText = poster.textContent, lightOn = beacon.classList.contains('on');
+  const title = getTarget(document, '#lab-title'), beacon = getTarget(document, '#lab-beacon');
+  const titleMarkup = title.innerHTML, lightOn = beacon.classList.contains('on');
+  const bodyClasses = BODY_CLASSES.map(name => ({name, present: document.body.classList.contains(name)}));
   const styles = [['#lab-title', 'color'], ['body', 'background-color'], ['.topbar', 'background-color'], ['root', '--lab-accent']].map(([target, property]) => {
     const style = getTarget(document, target).style;
     return {style, property, value: style.getPropertyValue(property), priority: style.getPropertyPriority(property)};
   });
   return {restore() {
-    title.innerHTML = titleMarkup; poster.textContent = posterText;
+    title.innerHTML = titleMarkup;
     for (const {style, property, value, priority} of styles) {
       if (value) style.setProperty(property, value, priority);
       else style.removeProperty(property);
     }
     if (lightOn) beacon.classList.add('on'); else beacon.classList.remove('on');
+    for (const {name, present} of bodyClasses) document.body.classList[present ? 'add' : 'remove'](name);
   }};
 }

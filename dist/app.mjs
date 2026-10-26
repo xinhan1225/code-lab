@@ -22,6 +22,7 @@ const lessons = () => track === 'page' ? PAGE_LEVELS : LEVELS;
 const lessonNumber = () => lessons().indexOf(level) + 1;
 const lessonCode = () => String(lessonNumber()).padStart(2, '0');
 const completed = () => track === 'page' ? progress.pageCompleted : progress.completed[language];
+const nextLesson = () => lessons()[lessonNumber()] || lessons().find(item => !completed().includes(item.id));
 const mapLevel = () => track === 'page' ? LEVELS[0] : level;
 const commandLabels = { forward: '前进一步', left: '向左转 90°', right: '向右转 90°' };
 const solutionButton = document.createElement('button');
@@ -58,9 +59,14 @@ function setMode(next) {
   $('step-button').disabled=mode==='running'||mode==='won';
 }
 function cancelExecution() { generation++;clearTimeout(timer);timer=null;queue=null; }
+function restoreEnvironment() {
+  pageSnapshot.restore();
+  if(track==='page'&&level.setupCode)for(const command of compilePageCode(level.setupCode))applyPageCommand(command,document);
+  document.querySelectorAll('.target-highlight').forEach(el=>el.classList.remove('target-highlight'));
+}
 function resetScene(restorePage = false) {
   cancelExecution();renderer.clearCelebration();
-  if (restorePage) { pageSnapshot.restore();document.querySelectorAll('.target-highlight').forEach(el=>el.classList.remove('target-highlight')); }
+  if (restorePage) restoreEnvironment();
   state=createState(mapLevel());activeLine=0;setMode('idle');$('completion').hidden=true;
   updateBoard();highlightCode();
 }
@@ -94,13 +100,13 @@ function updateSidebar() {
 }
 function selectLevel(id,newLanguage=language,newTrack=track) {
   if(initialized)saveDraft();cancelExecution();
-  pageSnapshot.restore();track=newTrack;language=track==='page'?'js':newLanguage;hintIndex=0;
+  track=newTrack;language=track==='page'?'js':newLanguage;hintIndex=0;
   level=lessons().find(item=>item.id===id)||lessons()[0];
   code.value=progress.drafts[`${track==='page'?'page':language}:${level.id}`]??level.starters[language];
   document.body.classList.toggle('mode-web',track==='page');
   document.documentElement.dataset.track=track;
   $('path-title').textContent=track==='page'?'改造实验室':'修复机器人';
-  $('path-summary').textContent=track==='page'?'6 个实验 · JavaScript DOM':'18 个实验 · 2 种语言';
+  $('path-summary').textContent=track==='page'?`${PAGE_LEVELS.length} 个趣味实验 · JavaScript`:`${LEVELS.length} 个实验 · 2 种语言`;
   $('lab-tab').classList.toggle('selected',track==='robot');$('page-tab').classList.toggle('selected',track==='page');
   $('tab-rust').disabled=track==='page';$('tab-rust').title=track==='page'?'网页 DOM 实验使用 JavaScript，Rust 可在机器人路线中练习':'';
   $('breadcrumb').textContent=`实验 ${lessonCode()} / ${level.stage || level.concept}`;
@@ -128,7 +134,7 @@ function selectLevel(id,newLanguage=language,newTrack=track) {
   $('mentor-message').textContent=track==='page'?'这次，你的实验对象是整个网页。运行代码后，抬头看看真实的灯光、名称和标牌发生了什么。':`实验 ${lessonCode()} 已就绪。${level.hints[0]} 一次掌握一个新知识。`;
   document.querySelectorAll('.target-highlight').forEach(el=>el.classList.remove('target-highlight'));
   $('console').replaceChildren();log(`$ ${track==='page'?'dom-lab':language==='js'?'javascript':'rust'} · 实验 ${lessonCode()}`,'command');log('等待运行… 下一行代码，会带来什么变化？','muted');
-  code.scrollTop=0;code.scrollLeft=0;resetScene();updateSidebar();persist();updateCursor();
+  code.scrollTop=0;code.scrollLeft=0;resetScene(true);updateSidebar();persist();updateCursor();
   initialized=true;
 }
 function updateBoard() {
@@ -178,7 +184,7 @@ function highlightExecution(line) {
   if(top<code.scrollTop||top>code.scrollTop+code.clientHeight-45){code.scrollTop=Math.max(0,top-60);syncEditorScroll();}
 }
 function prepareExecution() {
-  cancelExecution();renderer.clearCelebration();pageSnapshot.restore();state=createState(mapLevel());$('completion').hidden=true;$('console').replaceChildren();saveDraft();
+  cancelExecution();renderer.clearCelebration();restoreEnvironment();state=createState(mapLevel());$('completion').hidden=true;$('console').replaceChildren();saveDraft();
   log(`$ ${track==='page'?'dom-lab':language==='js'?'javascript':'rust'} · 实验 ${lessonCode()}`,'command');
   try{
     queue=track==='page'?compilePageCode(code.value):compile(code.value,language);
@@ -200,8 +206,10 @@ function finish() {
     $('completion').hidden=false;
     const all=completed().length===lessons().length;
     $('completion-title').textContent=all?'整条学习路径已完成！':'实验成功，系统已修复。';
-    $('completion-text').textContent=level.explanation[language];
-    $('next-button').textContent=lessonNumber()<lessons().length?'下一个实验 →':track==='page'?'回到机器人实验 →':'挑战网页改造 →';
+    const next=nextLesson();
+    $('completion-text').textContent=next?`接下来：${next.name}`:track==='page'&&all?`${PAGE_LEVELS.length} 个网页实验已完成，继续探索机器人路线。`:'本关已完成，继续探索另一条学习路线。';
+    $('next-button').textContent=next?`下一关：${next.name} →`:track==='page'?'回到机器人实验 →':'开始改造实验室 →';
+    $('next-button').focus({preventScroll:true});
     $('mentor-message').textContent=all?(track==='page'?'整个实验室都焕然一新了！回到机器人路线，继续用代码探索吧。':'所有系统恢复运行！试试另一种语言，看看同一个想法可以怎样表达。'):'漂亮的调试！保存这次理解，下一个实验里我们继续前进。';
     renderer.celebrate();tone('win');
   }else if(state.status==='error'){
@@ -280,13 +288,13 @@ $('copy-button').addEventListener('click',async()=>{try{await navigator.clipboar
 document.querySelectorAll('[data-language]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.language!==language)selectLevel(level.id,button.dataset.language);}));
 document.querySelectorAll('[data-speed]').forEach(button=>button.addEventListener('click',()=>{progress.speed=Number(button.dataset.speed);updateSpeed();persist();}));
 function updateSpeed(){document.querySelectorAll('[data-speed]').forEach(button=>{const active=Number(button.dataset.speed)===progress.speed;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active);});}
-$('next-button').addEventListener('click',()=>{const next=lessons()[lessonNumber()];if(next)selectLevel(next.id);else if(track==='robot')selectLevel(PAGE_LEVELS[0].id,'js','page');else selectLevel(LEVELS[0].id,progress.language,'robot');document.querySelector('.mission-intro').scrollIntoView({block:'start',behavior:renderer.reduced?'instant':'smooth'});});
+$('next-button').addEventListener('click',()=>{const next=nextLesson();if(next)selectLevel(next.id);else if(track==='robot')selectLevel(PAGE_LEVELS[0].id,'js','page');else selectLevel(LEVELS[0].id,progress.language,'robot');document.querySelector('.mission-intro').scrollIntoView({block:'start',behavior:renderer.reduced?'instant':'smooth'});code.focus({preventScroll:true});});
 function updateSound(){const label=progress.sound?'关闭音效':'开启音效';$('sound-button').setAttribute('aria-label',label);$('sound-button').setAttribute('title',label);$('sound-button').setAttribute('aria-pressed',progress.sound);$('sound-icon').style.color=progress.sound?'var(--mint)':'var(--muted)';}
 $('sound-button').addEventListener('click',()=>{progress.sound=!progress.sound;updateSound();persist();tone('collect');toast(progress.sound?'音效已开启':'音效已关闭');});
 const manual=$('manual-dialog');
-manual.querySelector('.manual-content > p').textContent='欢迎来到代码实验室。机器人路线有 18 个循序渐进的实验，可用 JavaScript 或 Rust 完成；改造实验室路线有 6 个 JavaScript DOM 实验，直接修改当前网页。两条路线分别保存成绩和草稿。';
+manual.querySelector('.manual-content > p').textContent=`欢迎来到代码实验室。机器人路线有 ${LEVELS.length} 个循序渐进的实验；改造实验室路线有 ${PAGE_LEVELS.length} 个 JavaScript 趣味实验，打开星空、体验失重、让机器人跳舞。两条路线分别保存成绩和草稿。`;
 const pageGuide=document.createElement('section');pageGuide.className='web-manual';
-pageGuide.innerHTML=`<h3>让真实网页成为实验室</h3><p>点击顶部“改造实验室”。代码会修改当前页面的名称、文字颜色、墙面、主题和信号灯；切关、切换路线或重置后恢复基准环境，已保存的代码草稿保留。</p><table><thead><tr><th>目标</th><th>支持的 JavaScript 示例</th></tr></thead><tbody><tr><td>顶部名称 / 标牌</td><td><code>document.querySelector('#lab-title').textContent = '星际实验室';</code><br><code>document.querySelector('#lab-poster').textContent = '探索开始';</code></td></tr><tr><td>标题颜色</td><td><code>document.querySelector('#lab-title').style.color = '#f6c65c';</code></td></tr><tr><td>整页墙面 / 顶部控制台</td><td><code>document.body.style.backgroundColor = '#142b3b';</code><br><code>document.querySelector('.topbar').style.backgroundColor = '#102b30';</code></td></tr><tr><td>整页强调色</td><td><code>document.documentElement.style.setProperty('--lab-accent', '#8bb8ff');</code></td></tr><tr><td>环境灯</td><td><code>document.querySelector('#lab-beacon').classList.add('on');</code><br><code>document.querySelector('#lab-beacon').classList.remove('on');</code></td></tr></tbody></table><p class="manual-note">网页路线支持上述指定目标、API、字符串常量和单行注释；颜色接受 3 / 6 位十六进制，文字最多 80 字，单次最多 64 条操作。代码先完整检查再修改页面；不支持任意 DOM、HTML 注入、外部网络、函数、变量或循环。机器人路线继续支持对应的变量、循环与条件语法。</p>`;
+pageGuide.innerHTML=`<h3>让真实网页成为实验室</h3><p>点击顶部“改造实验室”。代码会改变真实页面和机器人的状态；切关、切换路线或重置后恢复本关初始环境。通关后，“下一关”固定显示在屏幕底部，也可以直接按 Enter 继续。</p><table><thead><tr><th>目标</th><th>支持的 JavaScript 示例</th></tr></thead><tbody><tr><td>顶部名称</td><td><code>document.querySelector('#lab-title').textContent = '星际实验室';</code></td></tr><tr><td>标题颜色</td><td><code>document.querySelector('#lab-title').style.color = '#f6c65c';</code></td></tr><tr><td>整页墙面 / 顶部控制台</td><td><code>document.body.style.backgroundColor = '#142b3b';</code><br><code>document.querySelector('.topbar').style.backgroundColor = '#102b30';</code></td></tr><tr><td>整页强调色</td><td><code>document.documentElement.style.setProperty('--lab-accent', '#8bb8ff');</code></td></tr><tr><td>环境灯</td><td><code>document.querySelector('#lab-beacon').classList.add('on');</code></td></tr><tr><td>星空 / 机器人失重 / 跳舞</td><td><code>document.body.classList.add('starfield');</code><br><code>document.body.classList.add('zero-gravity');</code><br><code>document.body.classList.add('dance-mode');</code></td></tr><tr><td>恢复场景</td><td><code>document.body.classList.remove('dance-mode');</code></td></tr></tbody></table><p class="manual-note">场景类名还包括 blueprint（蓝图）、hologram（全息）、scan-mode（扫描）、mirror-world（镜像）、night-shift（夜航）、party-mode（派对）。网页路线只支持这些指定目标、API、字符串常量和单行注释；颜色接受 3 / 6 位十六进制，文字最多 80 字，每次最多 64 条操作。代码先完整检查再修改页面，不支持任意脚本。机器人路线继续支持其变量、循环与条件语法。</p>`;
 manual.querySelector('.manual-content').insertBefore(pageGuide,manual.querySelector('.manual-content > h3'));
 function showManual(){if(mode==='running')run();manual.showModal();}
 $('manual-button').addEventListener('click',showManual);$('syntax-button').addEventListener('click',showManual);

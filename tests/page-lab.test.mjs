@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {PAGE_LEVELS, compilePageCode, applyPageCommand, checkPageGoals, createPageSnapshot} from '../dist/page-lab.mjs';
+import {BODY_CLASSES, PAGE_LEVELS, compilePageCode, applyPageCommand, checkPageGoals, createPageSnapshot} from '../dist/page-lab.mjs';
 
 function fixture() {
   function element(text = '') {
@@ -20,7 +20,7 @@ function fixture() {
       get textContent() { return content; }, set textContent(value) { content = value; markup = value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'); },
     };
   }
-  const targets = new Map([['#lab-title', element('实验室')], ['#lab-poster', element('一起探索')], ['#lab-beacon', element()], ['.topbar', element()]]);
+  const targets = new Map([['#lab-title', element('实验室')], ['#lab-beacon', element()], ['.topbar', element()]]);
   return {body: element(), documentElement: element(), querySelector: selector => targets.get(selector) ?? null};
 }
 
@@ -28,6 +28,10 @@ for (const level of PAGE_LEVELS) {
   test(`web level ${level.id}: starter parses and reference solution passes`, () => {
     assert.doesNotThrow(() => compilePageCode(level.starters.js));
     const document = fixture();
+    for (const command of compilePageCode(level.setupCode ?? '')) applyPageCommand(command, document);
+    assert.ok(checkPageGoals(level, document).some(check => !check.passed), 'lesson needs an unfinished goal after setup');
+    for (const command of compilePageCode(level.starters.js)) applyPageCommand(command, document);
+    assert.ok(checkPageGoals(level, document).some(check => !check.passed), 'starter leaves work for the learner');
     for (const command of compilePageCode(level.solutions.js)) assert.match(applyPageCommand(command, document), /第 \d+ 行/);
     assert.ok(checkPageGoals(level, document).every(check => check.passed));
     assert.equal(level.hints.length, 3);
@@ -38,17 +42,17 @@ for (const level of PAGE_LEVELS) {
   });
 }
 
-test('web curriculum has stable order and its combined lesson covers all prior operations', () => {
-  assert.deepEqual(PAGE_LEVELS.map(level => level.id), [1, 2, 3, 4, 5, 6]);
-  assert.deepEqual(PAGE_LEVELS.map(level => level.difficulty), [1, 1, 2, 2, 3, 4]);
+test('web curriculum has stable IDs and its final lesson covers the first five operations', () => {
+  assert.deepEqual(PAGE_LEVELS.map(level => level.id), [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 6]);
+  assert.deepEqual(PAGE_LEVELS.slice(0, 5).map(level => level.difficulty), [1, 1, 2, 2, 3]);
   assert.ok(PAGE_LEVELS.every((level, index) => index === 0 || level.difficulty >= PAGE_LEVELS[index - 1].difficulty));
-  assert.deepEqual(PAGE_LEVELS[5].checks.slice(0, 5), PAGE_LEVELS.slice(0, 5).flatMap(level => level.checks));
-  assert.deepEqual(PAGE_LEVELS[5].checks.at(-1), {label: '#lab-poster 的标语是「探索，从这一行代码开始。」', op: 'text', target: '#lab-poster', value: '探索，从这一行代码开始。'});
-  assert.ok(checkPageGoals(PAGE_LEVELS[5], fixture()).every(check => !check.passed));
+  assert.deepEqual(PAGE_LEVELS.at(-1).checks, PAGE_LEVELS.slice(0, 5).flatMap(level => level.checks));
+  assert.ok(checkPageGoals(PAGE_LEVELS.at(-1), fixture()).every(check => !check.passed));
+  assert.equal(PAGE_LEVELS.at(-1).difficulty, 5);
 });
 
 test('quoted semicolons, comment markers, escapes, and source lines parse accurately', () => {
-  const commands = compilePageCode('// first\n\ndocument.querySelector("#lab-poster").textContent = "Hi; // \\"quote\\" \\\\ \\n \\u661f \\x41"; // tail\ndocument.querySelector(\'#lab-beacon\').classList.remove(\'on\');');
+  const commands = compilePageCode('// first\n\ndocument.querySelector("#lab-title").textContent = "Hi; // \\"quote\\" \\\\ \\n \\u661f \\x41"; // tail\ndocument.querySelector(\'#lab-beacon\').classList.remove(\'on\');');
   assert.equal(commands[0].value, 'Hi; // "quote" \\ \n 星 A');
   assert.equal(commands[0].line, 3);
   assert.equal(commands[1].line, 4);
@@ -70,6 +74,15 @@ test('unsupported APIs, selectors, unsafe values, and incomplete statements are 
     "document.querySelector('.topbar').style.color = '#fff';",
     "document.documentElement.style.setProperty('--other', '#fff');",
     "document.querySelector('#lab-beacon').classList.add('hidden');",
+    "document.querySelector('#lab-beacon').classList.add('starfield');",
+    "document.querySelector('.topbar').classList.add('starfield');",
+    "document.documentElement.classList.add('starfield');",
+    "document.body.classList.add('on');",
+    "document.body.classList.add('mode-web');",
+    "document.body.classList.add('unknown-effect');",
+    "document.body.classList.add('starfield dance-mode');",
+    "document.body.classList.add('starfield', 'dance-mode');",
+    "document.body.classList.toggle('starfield');",
     "document.querySelector('#lab-title').classList.add('on');",
     "document.querySelector('#lab-beacon').classList.toggle('on');",
     "document.querySelector('#lab-title').textContent = document.body;",
@@ -105,41 +118,99 @@ test('compilation rejects the whole input before any page effects and applicatio
 
 test('text assignment displays markup literally and color checks accept browser RGB serialization', () => {
   const document = fixture();
-  applyPageCommand(compilePageCode("document.querySelector('#lab-poster').textContent = '<img src=x>';" )[0], document);
-  assert.equal(document.querySelector('#lab-poster').textContent, '<img src=x>');
-  assert.equal(document.querySelector('#lab-poster').innerHTML, '&lt;img src=x&gt;');
+  applyPageCommand(compilePageCode("document.querySelector('#lab-title').textContent = '<img src=x>';" )[0], document);
+  assert.equal(document.querySelector('#lab-title').textContent, '<img src=x>');
+  assert.equal(document.querySelector('#lab-title').innerHTML, '&lt;img src=x&gt;');
   document.querySelector('#lab-title').style.color = 'rgb(246, 198, 92)';
   assert.equal(checkPageGoals(PAGE_LEVELS[1], document)[0].passed, true);
   document.querySelector('#lab-title').style.color = '#abc';
   assert.equal(checkPageGoals({checks: [{label: 'short', op: 'style', target: '#lab-title', property: 'color', value: '#aabbcc'}]}, document)[0].passed, true);
 });
 
-test('snapshot restores only owned text, styles, CSS variable, and beacon on membership', () => {
+test('snapshot restores only owned text, styles, CSS variable, and class memberships', () => {
   const document = fixture(), title = document.querySelector('#lab-title'), beacon = document.querySelector('#lab-beacon');
   title.innerHTML = '<span>原始</span>实验室';
   title.style.setProperty('color', '#fff', 'important');
   document.body.style.backgroundColor = '#123456';
   document.documentElement.style.setProperty('--lab-accent', '#abc');
   const snapshot = createPageSnapshot(document);
-  for (const command of compilePageCode(PAGE_LEVELS[5].solutions.js + "\ndocument.querySelector('#lab-poster').textContent = '新标语';\ndocument.querySelector('.topbar').style.backgroundColor = '#456';")) applyPageCommand(command, document);
+  for (const command of compilePageCode(PAGE_LEVELS.at(-1).solutions.js + "\ndocument.querySelector('.topbar').style.backgroundColor = '#456';")) applyPageCommand(command, document);
+  for (const name of BODY_CLASSES) document.body.classList.add(name);
   title.style.setProperty('font-size', '44px');
   beacon.classList.add('unrelated');
+  document.body.classList.add('mode-web');
   snapshot.restore();
   assert.equal(title.innerHTML, '<span>原始</span>实验室');
   assert.equal(title.style.color, '#fff');
   assert.equal(title.style.getPropertyPriority('color'), 'important');
   assert.equal(title.style.getPropertyValue('font-size'), '44px');
-  assert.equal(document.querySelector('#lab-poster').textContent, '一起探索');
   assert.equal(document.body.style.backgroundColor, '#123456');
   assert.equal(document.querySelector('.topbar').style.backgroundColor, '');
   assert.equal(document.documentElement.style.getPropertyValue('--lab-accent'), '#abc');
   assert.equal(beacon.classList.contains('on'), false);
   assert.equal(beacon.classList.contains('unrelated'), true);
   assert.equal(beacon.classList.contains('existing'), true);
+  assert.ok(BODY_CLASSES.every(name => !document.body.classList.contains(name)));
+  assert.equal(document.body.classList.contains('existing'), true);
+  assert.equal(document.body.classList.contains('mode-web'), true);
   title.textContent = '再次变化'; snapshot.restore();
   assert.equal(title.innerHTML, '<span>原始</span>实验室');
   beacon.classList.add('on');
   const litSnapshot = createPageSnapshot(document);
   beacon.classList.remove('on'); litSnapshot.restore();
   assert.equal(beacon.classList.contains('on'), true);
+});
+
+test('body class whitelist supports adding and removing every effect on body only', () => {
+  assert.deepEqual(BODY_CLASSES, ['starfield', 'blueprint', 'hologram', 'zero-gravity', 'dance-mode', 'scan-mode', 'mirror-world', 'night-shift', 'party-mode']);
+  const document = fixture();
+  for (const name of BODY_CLASSES) {
+    applyPageCommand(compilePageCode(`document.body.classList.add('${name}');`)[0], document);
+    assert.equal(document.body.classList.contains(name), true);
+    applyPageCommand(compilePageCode(`document.body.classList.remove('${name}');`)[0], document);
+    assert.equal(document.body.classList.contains(name), false);
+    assert.throws(() => applyPageCommand({op: 'class', target: '#lab-beacon', action: 'add', value: name}, document));
+  }
+  assert.throws(() => applyPageCommand({op: 'class', target: 'body', action: '__proto__', value: 'starfield'}, document));
+  assert.throws(() => applyPageCommand({op: 'class', target: 'body', action: 'add', value: 'mode-web'}, document));
+});
+
+test('snapshot restores original effect membership while preserving unrelated body classes', () => {
+  const document = fixture();
+  document.body.classList.add('starfield');
+  document.body.classList.add('mode-web');
+  const snapshot = createPageSnapshot(document);
+  for (const name of BODY_CLASSES) document.body.classList.add(name);
+  document.body.classList.remove('starfield');
+  document.body.classList.add('new-unrelated');
+  snapshot.restore();
+  assert.equal(document.body.classList.contains('starfield'), true);
+  assert.ok(BODY_CLASSES.filter(name => name !== 'starfield').every(name => !document.body.classList.contains(name)));
+  assert.equal(document.body.classList.contains('mode-web'), true);
+  assert.equal(document.body.classList.contains('new-unrelated'), true);
+});
+
+test('party removal lesson starts active and can be reset and solved repeatedly', () => {
+  const document = fixture(), snapshot = createPageSnapshot(document), level = PAGE_LEVELS.find(item => item.id === 17);
+  for (let run = 0; run < 2; run++) {
+    snapshot.restore();
+    for (const command of compilePageCode(level.setupCode)) applyPageCommand(command, document);
+    assert.ok(checkPageGoals(level, document).every(check => !check.passed));
+    for (const command of compilePageCode(level.solutions.js)) applyPageCommand(command, document);
+    assert.ok(checkPageGoals(level, document).every(check => check.passed));
+  }
+});
+
+test('all effect solutions restore to baseline without needing removed page elements', () => {
+  const document = fixture(), snapshot = createPageSnapshot(document);
+  document.body.classList.add('mode-web');
+  for (const level of PAGE_LEVELS) {
+    for (const command of compilePageCode(level.setupCode ?? '')) applyPageCommand(command, document);
+    for (const command of compilePageCode(level.solutions.js)) applyPageCommand(command, document);
+    snapshot.restore();
+    assert.ok(BODY_CLASSES.every(name => !document.body.classList.contains(name)), level.name);
+    assert.equal(document.body.classList.contains('mode-web'), true);
+    assert.equal(document.querySelector('#lab-title').textContent, '实验室');
+    assert.equal(document.querySelector('#lab-beacon').classList.contains('on'), false);
+  }
 });

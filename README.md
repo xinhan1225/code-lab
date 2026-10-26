@@ -1,6 +1,6 @@
 # CODE LAB · 双语代码实验室
 
-一个可以实际游玩的中文编程闯关游戏。玩家编写 JavaScript 或 Rust 教学代码，指挥 B-01 完成 18 个机器人实验；还可以进入 6 个网页实验，用 JavaScript 改变整个实验室页面。
+一个可以实际游玩的中文编程闯关游戏。玩家编写 JavaScript 或 Rust 教学代码，指挥 B-01 完成 18 个机器人实验；还可以进入 18 个趣味网页实验，用 JavaScript 改变整个实验室页面，共 54 个语言挑战。
 
 ## 直接开始
 
@@ -21,7 +21,9 @@ Windows：双击根目录的 `start-game.cmd`。本机已具备 Node.js；启动
 
 18 关按基础控制、循环思维、变量与判断、综合应用排列：先练一两步前进、单次左右转，再接触短循环、循环次数、变量和独立判断，最后组合巡航。两种语言分别保存 18 关成绩和编辑草稿。旧版六关使用原来的存档身份，升级后不会丢失或错配旧成绩。
 
-顶部“改造实验室”进入另外 6 个 JavaScript 网页实验。它们修改的是当前真实网页的名称、文字颜色、整页墙面、主题色、信号灯和标牌；下一关、切换路线或重置时恢复默认外观。运行代码之前会检查完整程序，不会先执行前半段非法程序。网页路线独立保存成绩和代码草稿，不与机器人路线混用。
+顶部“改造实验室”进入 18 个 JavaScript 趣味网页实验。除了名称、颜色、主题和信号灯，还能打开星空、切换蓝图与全息投影、让机器人失重或跳舞、扫描和镜像观察窗、开启夜航与霓虹派对。每个效果来自真实 DOM 类名，下一关、切换路线或重置时恢复本关初始环境。第 17 课会先开启派对，供玩家练习关闭效果。网页路线独立保存成绩和代码草稿。
+
+寄语框已删除。通关后的“下一关”固定在屏幕底部，显示下个实验的名称；按钮会获得键盘焦点，可以按 Enter 继续。若跳到了最后一课而前面仍有未完成内容，按钮会引导到尚未完成的课程。
 
 通关后，B-01 会跳跃、挥臂，并出现彩屑和扩散光环。开启系统“减少动态效果”时，改为固定光环与成功提示。浏览器存储被禁用时仍可玩，但刷新后不会保留进度。
 
@@ -62,15 +64,21 @@ document.querySelector('.topbar').style.backgroundColor = '#102b30';
 document.documentElement.style.setProperty('--lab-accent', '#8bb8ff');
 document.querySelector('#lab-beacon').classList.add('on');
 document.querySelector('#lab-beacon').classList.remove('on');
-document.querySelector('#lab-poster').textContent = '探索，从这一行代码开始。';
+document.body.classList.add('starfield');
+document.body.classList.add('zero-gravity');
+document.body.classList.add('dance-mode');
+document.body.classList.remove('dance-mode');
 ```
 
-颜色只接受三位或六位十六进制值，文字最多 80 字，每次最多 64 条网页操作。不支持任意选择器、`innerHTML`、外部网络或任意脚本执行。这里使用有效 JavaScript 语法演示指定 DOM API，再由受限解析器安全应用到真实页面。
+场景类名包括 `starfield`、`blueprint`、`hologram`、`zero-gravity`、`dance-mode`、`scan-mode`、`mirror-world`、`night-shift`、`party-mode`，可添加、组合或移除。颜色只接受三位或六位十六进制值，文字最多 80 字，每次最多 64 条网页操作。不支持任意选择器、`innerHTML`、外部网络或任意脚本执行。
+
+旧成绩继续保留。旧第六关的默认答案会移除已退役的寄语语句；用户自定义的草稿内容保持原样，如引用已删除目标，可重置本关获取新起始代码。
 
 ## 项目文件
 
 - `docs/task-plan.md`：任务计划书。
 - `docs/expansion-plan.md`：18 关、网页实验、任务视觉和通关特效的升级计划。
+- `docs/fun-lab-plan.md`：趣味网页课程、寄语移除与固定通关导航的升级计划。
 - `design/interface-concept.png`：用内置生图生成的界面设计原图。
 - `design/prompt.txt`：完整生成提示词；工具为内置 imagegen。
 - `dist/`：可部署的完整游戏，无网络字体或外部素材依赖。

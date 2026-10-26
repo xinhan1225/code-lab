@@ -1,0 +1,78 @@
+/* Environment classes are real DOM experiments; only the page track activates them. */
+body.mode-web.starfield{background-color:#080e28}
+body.mode-web.starfield:before{
+  background-image:radial-gradient(circle,#dcf7ff 1px,transparent 1.7px),radial-gradient(circle,#b4a5ff 1.4px,transparent 2px),radial-gradient(circle,#76ceff .7px,transparent 1.5px),radial-gradient(ellipse at 85% 18%,#7549bb38,transparent 60%);
+  background-size:83px 97px,151px 173px,47px 67px,100% 100%;
+  background-position:11px 21px,37px 61px,6px 3px,0 0;
+  animation:lab-stardrift 70s linear infinite;
+}
+body.mode-web.starfield .board-container{background:radial-gradient(ellipse,#583a8138,transparent 70%)}
+body.mode-web.starfield .board-frame{border-color:#8074c9;box-shadow:0 0 34px #795fe329}
+
+body.mode-web.blueprint{
+  --line:#4279aa;--muted:#a5c9e7;
+  background-color:#0b2b50;
+  background-image:linear-gradient(#72b6ed26 1px,transparent 1px),linear-gradient(90deg,#72b6ed26 1px,transparent 1px),linear-gradient(#72b6ed0e 1px,transparent 1px),linear-gradient(90deg,#72b6ed0e 1px,transparent 1px);
+  background-size:100px 100px,100px 100px,20px 20px,20px 20px;
+}
+body.mode-web.blueprint :is(.topbar,.sidebar,.coding-panel,.board-frame,.task-card,.goals-card){background-color:#123d68d9;background-image:none;border-color:#73b6e9}
+body.mode-web.blueprint :is(.board-frame,.task-card,.goals-card,.editor-window){border-style:dashed;box-shadow:inset 0 0 0 4px #a8d8ff0c,0 0 0 1px #73b6e914}
+body.mode-web.blueprint .board-container{background-image:linear-gradient(#82c2f521 1px,transparent 1px),linear-gradient(90deg,#82c2f521 1px,transparent 1px);background-size:24px 24px}
+body.mode-web.blueprint :is(.board-heading h2,.task-card h2){color:#e7f5ff}
+
+body.mode-web.hologram .board-frame{border-color:#57e4ef;box-shadow:0 0 25px #44d8ff2e,inset 0 0 28px #32dce511}
+body.mode-web.hologram canvas#board{filter:sepia(.4) hue-rotate(112deg) saturate(1.9) drop-shadow(0 0 5px #47d9ff77)}
+body.mode-web.hologram .board-container:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,#a6faff18 3px 4px);
+  border-top:1px solid #a1faff77;border-bottom:1px solid #a1faff55;
+  animation:lab-hologram 8s linear infinite;
+}
+
+body.mode-web.zero-gravity .board-frame{border-color:#a898f1;box-shadow:0 0 28px #9779df26}
+body.mode-web.zero-gravity .board-container{background:radial-gradient(ellipse at 50% 60%,#a786df2e,transparent 65%)}
+body.mode-web.zero-gravity .board-heading{background:linear-gradient(110deg,#6e538122,transparent)}
+body.mode-web.dance-mode .board-frame{border-color:#e7b367;box-shadow:0 0 27px #f0b36c21}
+body.mode-web.dance-mode .board-container{background:radial-gradient(ellipse at 35% 70%,#ed8d7b2b,transparent 45%),radial-gradient(ellipse at 70% 60%,#e9c45d2b,transparent 45%)}
+body.mode-web.dance-mode .board-heading h2{color:#ffe2a6}
+
+body.mode-web.scan-mode .board-frame{border-color:#7de9b6;box-shadow:inset 0 0 20px #80ffbc12}
+body.mode-web.scan-mode .board-container:after{
+  content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(transparent 0 40%,#96ffcb04 40%,#96ffcb2a 49%,#d1ffe8aa 50%,transparent 51%);
+  background-size:100% 200%;animation:lab-scan 4.5s ease-in-out infinite alternate;
+}
+body.mode-web.scan-mode .board-container{background-color:#12342655}
+
+body.mode-web.mirror-world canvas#board{transform:scaleX(-1)}
+body.mode-web.mirror-world .board-frame{border-color:#ceacdc;box-shadow:inset 5px 0 #b494d344,inset -5px 0 #b494d344,0 0 28px #d1a2e91c}
+body.mode-web.mirror-world .board-container{background:linear-gradient(90deg,#8b61ae1f,transparent 48%,#e4d6ff44 50%,transparent 52%,#8b61ae1f)}
+
+body.mode-web.night-shift{background-color:#101329;background-image:radial-gradient(ellipse at 95% 0,#ba885844,transparent 55%),linear-gradient(130deg,#181327,#0a1926)}
+body.mode-web.night-shift:before{background:radial-gradient(ellipse at 75% 18%,#ffcd8038,transparent 53%),radial-gradient(ellipse at 0 90%,#7d8dea2b,transparent 50%)}
+body.mode-web.night-shift .topbar{background-color:#1b1c32ed;border-color:#6c617a;box-shadow:0 4px 25px #edba7230}
+body.mode-web.night-shift :is(.sidebar,.coding-panel){background-color:#141a2c99}
+body.mode-web.night-shift .board-frame{background:linear-gradient(160deg,#2a2b37,#131d2b);border-color:#a58d6d;box-shadow:0 -10px 60px #edba7226}
+body.mode-web.night-shift .board-container{background:radial-gradient(ellipse at 55% 15%,#f3cd7440,transparent 75%)}
+
+body.mode-web.party-mode{background-color:#19102c;background-image:radial-gradient(ellipse at 10% 20%,#e23bac33,transparent 55%),radial-gradient(ellipse at 90% 75%,#42d5ee33,transparent 55%)}
+body.mode-web.party-mode:before{background:radial-gradient(ellipse at 15% 30%,#e83f9b38,transparent 45%),radial-gradient(ellipse at 85% 50%,#6a6aff38,transparent 45%)}
+body.mode-web.party-mode:after{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.65;
+  background-image:linear-gradient(35deg,transparent 47%,#ffb1df 47% 53%,transparent 53%),linear-gradient(125deg,transparent 48%,#80f1ee 48% 52%,transparent 52%),radial-gradient(ellipse,#ffd474 2px,transparent 3px);
+  background-size:137px 173px,199px 139px,113px 211px;
+  mask-image:repeating-linear-gradient(0deg,#000 0 5px,transparent 5px 43px);
+  animation:lab-confetti 24s linear infinite;
+}
+body.mode-web.party-mode .board-frame{border-color:#ee87d5;box-shadow:0 0 22px #ed5dc033,12px -5px 45px #56d2e522}
+body.mode-web.party-mode .board-container{background:radial-gradient(ellipse at 20% 80%,#ff52ae2e,transparent 55%),radial-gradient(ellipse at 85% 25%,#55e7ef2e,transparent 55%)}
+body.mode-web.party-mode .task-card{border-color:#d191df;background:linear-gradient(120deg,#412440,#192d42)}
+
+@keyframes lab-stardrift{to{background-position:94px 118px,188px 234px,53px 70px,0 0}}
+@keyframes lab-hologram{to{background-position:0 80px}}
+@keyframes lab-scan{from{background-position:0 100%}to{background-position:0 0}}
+@keyframes lab-confetti{to{background-position:137px 346px,-199px 278px,0 422px}}
+@media(prefers-reduced-motion:reduce){
+  body.mode-web.starfield:before,body.mode-web.hologram .board-container:before,body.mode-web.scan-mode .board-container:after,body.mode-web.party-mode:after{animation:none}
+  body.mode-web.scan-mode .board-container:after{background-position:0 50%}
+}

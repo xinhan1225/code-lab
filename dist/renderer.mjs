@@ -1,5 +1,17 @@
 import { getLevelInfo } from './core.mjs';
 
+const ENVIRONMENTS = ['starfield','blueprint','hologram','zero-gravity','dance-mode','scan-mode','mirror-world','night-shift','party-mode'];
+
+export function robotMotion(floating, dancing, time, reduced) {
+  const beat = reduced ? 0 : Math.sin(time / 180);
+  return {
+    x: dancing ? beat * 2.5 : 0,
+    y: (floating ? -15 + (reduced ? 0 : Math.sin(time / 650) * 6) : 0) - (dancing ? Math.abs(beat) * 6 : 0),
+    tilt: dancing ? beat * .1 : 0,
+    wave: dancing ? .7 + beat * .35 : 0
+  };
+}
+
 export class LabRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -12,7 +24,12 @@ export class LabRenderer {
     this.duration = 240;
     this.celebrationStarted = null;
     this.particles = [];
-    this.reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+    this.reduced = motionPreference.matches;
+    motionPreference.addEventListener('change', event => {
+      this.reduced = event.matches;
+      if (this.reduced) { this.particles = []; this.duration = 1; }
+    });
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
     this.resize();
@@ -75,6 +92,8 @@ export class LabRenderer {
   }
   draw(time) {
     const c = this.ctx, {width,height} = this, level = this.level, state = this.state, info = getLevelInfo(level);
+    const classes = document.body.classList;
+    this.canvas.dataset.environment = classes.contains('mode-web') ? ENVIRONMENTS.filter(name=>classes.contains(name)).join(' ') : '';
     if (!width || !height) return;
     if(this.celebrationStarted!==null&&time-this.celebrationStarted>3200)this.clearCelebration();
     c.clearRect(0,0,width,height);
@@ -142,9 +161,14 @@ export class LabRenderer {
   }
   robot(x,y,tw,time,pulse){
     const c=this.ctx,s=tw/64,state=this.state;
+    const classes=document.body.classList,web=classes.contains('mode-web');
+    const floating=web&&classes.contains('zero-gravity'),dancing=web&&classes.contains('dance-mode');
+    const motion=robotMotion(floating,dancing,time,this.reduced);
     c.save();c.translate(x,y);c.scale(s,s);
     const celebration=this.celebrationStarted===null?0:Math.max(0,1-(time-this.celebrationStarted)/2400);
     c.fillStyle='#0007';c.beginPath();c.ellipse(2,2,17,7,0,0,Math.PI*2);c.fill();
+    if(floating){c.strokeStyle='#b6a4ff';c.lineWidth=1.3;c.beginPath();c.ellipse(0,2,22,9,0,0,Math.PI*2);c.stroke();this.glow(0,-5,27,'#a991ff25');}
+    c.translate(motion.x,motion.y);c.rotate(motion.tilt);
     if(celebration&&!this.reduced)c.translate(0,-Math.abs(Math.sin((time-this.celebrationStarted)/150))*13*celebration);
     c.strokeStyle=state.status==='error'?'#de9482':'#80cdb1';c.lineWidth=1;c.beginPath();c.ellipse(0,2,18,8,0,0,Math.PI*2);c.stroke();
     const vectors=[[.7,-.4],[.7,.4],[-.7,.4],[-.7,-.4]],v=vectors[state.dir];
@@ -155,11 +179,14 @@ export class LabRenderer {
     c.fillStyle='#acbeb3';c.fillRect(-6,-13,12,6);c.fillStyle='#4d6f66';c.fillRect(-2,-11,4,2);
     c.fillStyle='#6e8d88';
     if(celebration&&!this.reduced){c.save();c.translate(-14,-23);c.rotate(.7+Math.sin(time/110)*.3);c.fillRect(-3,-14,5,16);c.restore();c.save();c.translate(13,-22);c.rotate(-.7-Math.sin(time/110)*.3);c.fillRect(-2,-14,5,16);c.restore();}
+    else if(dancing){c.save();c.translate(-14,-23);c.rotate(motion.wave);c.fillRect(-3,-14,5,16);c.restore();c.save();c.translate(13,-22);c.rotate(-motion.wave);c.fillRect(-2,-14,5,16);c.restore();}
     else{c.fillRect(-17,-25,5,16);c.fillRect(11,-23,5,15);}
     c.save();c.rotate(-.07);c.fillStyle='#a7bab0';c.beginPath();c.roundRect(-17,-47,35,25,8);c.fill();
     c.fillStyle='#e1e6d6';c.beginPath();c.roundRect(-18,-48,32,23,7);c.fill();
     c.fillStyle='#153b36';c.beginPath();c.roundRect(-13,-43,23,13,4);c.fill();
-    c.shadowColor=state.status==='error'?'#ff9d84':'#9affe0';c.shadowBlur=7;c.fillStyle=state.status==='error'?'#eead8b':'#a8f7d5';c.beginPath();c.roundRect(-8,-40,4,7,2);c.roundRect(2,-40,4,7,2);c.fill();c.shadowBlur=0;
+    c.shadowColor=state.status==='error'?'#ff9d84':'#9affe0';c.shadowBlur=7;c.fillStyle=state.status==='error'?'#eead8b':'#a8f7d5';
+    if((dancing||celebration)&&state.status!=='error'){c.strokeStyle='#a8f7d5';c.lineWidth=2;c.beginPath();c.arc(-6,-36,2.5,Math.PI,Math.PI*2);c.moveTo(6,-36);c.arc(3.5,-36,2.5,Math.PI,Math.PI*2);c.moveTo(-4,-33);c.quadraticCurveTo(-1,-30,3,-33);c.stroke();}
+    else{c.beginPath();c.roundRect(-8,-40,4,7,2);c.roundRect(2,-40,4,7,2);c.fill();}c.shadowBlur=0;
     c.strokeStyle='#9abbb0';c.lineWidth=2;c.beginPath();c.moveTo(-2,-48);c.lineTo(-2,-55);c.stroke();this.glow(-2,-58,9,'#9ae6ca55');c.fillStyle=state.status==='error'?'#eeb994':'#aff5d4';c.beginPath();c.arc(-2,-58,2.7+.25*pulse,0,Math.PI*2);c.fill();c.restore();
     c.restore();
   }
