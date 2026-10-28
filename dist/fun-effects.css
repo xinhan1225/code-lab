@@ -15,7 +15,7 @@ body.mode-web.blueprint{
   background-image:linear-gradient(#72b6ed26 1px,transparent 1px),linear-gradient(90deg,#72b6ed26 1px,transparent 1px),linear-gradient(#72b6ed0e 1px,transparent 1px),linear-gradient(90deg,#72b6ed0e 1px,transparent 1px);
   background-size:100px 100px,100px 100px,20px 20px,20px 20px;
 }
-body.mode-web.blueprint :is(.topbar,.sidebar,.coding-panel,.board-frame,.task-card,.goals-card){background-color:#123d68d9;background-image:none;border-color:#73b6e9}
+body.mode-web.blueprint :is(.coding-panel,.board-frame){background-color:#123d68d9;background-image:none;border-color:#73b6e9}
 body.mode-web.blueprint :is(.board-frame,.task-card,.goals-card,.editor-window){border-style:dashed;box-shadow:inset 0 0 0 4px #a8d8ff0c,0 0 0 1px #73b6e914}
 body.mode-web.blueprint .board-container{background-image:linear-gradient(#82c2f521 1px,transparent 1px),linear-gradient(90deg,#82c2f521 1px,transparent 1px);background-size:24px 24px}
 body.mode-web.blueprint :is(.board-heading h2,.task-card h2){color:#e7f5ff}
@@ -51,7 +51,7 @@ body.mode-web.mirror-world .board-container{background:linear-gradient(90deg,#8b
 body.mode-web.night-shift{background-color:#101329;background-image:radial-gradient(ellipse at 95% 0,#ba885844,transparent 55%),linear-gradient(130deg,#181327,#0a1926)}
 body.mode-web.night-shift:before{background:radial-gradient(ellipse at 75% 18%,#ffcd8038,transparent 53%),radial-gradient(ellipse at 0 90%,#7d8dea2b,transparent 50%)}
 body.mode-web.night-shift .topbar{background-color:#1b1c32ed;border-color:#6c617a;box-shadow:0 4px 25px #edba7230}
-body.mode-web.night-shift :is(.sidebar,.coding-panel){background-color:#141a2c99}
+body.mode-web.night-shift .coding-panel{background-color:#141a2c99}
 body.mode-web.night-shift .board-frame{background:linear-gradient(160deg,#2a2b37,#131d2b);border-color:#a58d6d;box-shadow:0 -10px 60px #edba7226}
 body.mode-web.night-shift .board-container{background:radial-gradient(ellipse at 55% 15%,#f3cd7440,transparent 75%)}
 

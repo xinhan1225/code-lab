@@ -2,6 +2,7 @@ import { LEVELS } from './levels.mjs';
 import { compile, createState, applyCommand, isPathAhead, getLevelInfo, attachRules } from './core.mjs';
 import { loadProgress, saveProgress } from './progress.mjs';
 import { LabRenderer } from './renderer.mjs';
+import { initTour } from './tour.mjs';
 import { PAGE_LEVELS, compilePageCode, applyPageCommand, checkPageGoals, createPageSnapshot } from './page-lab.mjs';
 
 const $ = id => document.getElementById(id);
@@ -138,6 +139,11 @@ function selectLevel(id,newLanguage=language,newTrack=track) {
   initialized=true;
 }
 function updateBoard() {
+  for (const surface of [document.body, document.querySelector('.topbar')]) {
+    const rgb = getComputedStyle(surface).backgroundColor.match(/[\d.]+/g).slice(0, 3).map(Number);
+    const luminance = rgb.map(value => { const channel = value / 255; return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4; });
+    surface.dataset.dark = luminance[0] * .2126 + luminance[1] * .7152 + luminance[2] * .0722 < .179 ? 'true' : 'false';
+  }
   const info=getLevelInfo(mapLevel()),count=state.collected.length,total=info.batteries.length;
   renderer.setScene(mapLevel(),state,Math.min(240,450/progress.speed));
   $('board').setAttribute('aria-label',track==='page'?`网页实验 ${lessonNumber()}：${level.name}。B-01 是本关导师。${state.won?'页面目标已完成，机器人正在庆祝。':'按任务指示修改真实网页。'}`:`实验 ${lessonNumber()}：${level.name}。机器人在第 ${state.x+1} 列、第 ${state.y+1} 行，朝${['北','东','南','西'][state.dir]}。已收集 ${count} / ${total} 块能量。${state.won?'已完成实验。':''}`);
@@ -302,10 +308,11 @@ $('lab-tab').addEventListener('click',()=>{if(manual.open)manual.close();if(trac
 $('page-tab').addEventListener('click',()=>{if(manual.open)manual.close();if(track!=='page')selectLevel(progress.pageLevelId,'js','page');code.focus();});
 $('close-manual').addEventListener('click',()=>manual.close());$('manual-start').addEventListener('click',()=>{manual.close();code.focus();});
 manual.addEventListener('click',event=>{if(event.target===manual){const box=manual.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)manual.close();}});
-document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'&&!manual.open){event.preventDefault();run();}});
+document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'&&!manual.open&&!$('tour-dialog').open){event.preventDefault();run();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='running')run();});
 
 updateSpeed();updateSound();selectLevel(level.id,language);
+initTour({storage:store,onStart(){if(manual.open)manual.close();if(mode==='running')run();}});
 try{
   const response=await fetch('./engine.wasm');if(!response.ok)throw new Error('规则模块不可用');
   const {instance}=await WebAssembly.instantiate(await response.arrayBuffer());attachRules(instance.exports);

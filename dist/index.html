@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1419">
-  <meta name="description" content="在机器人迷宫中学习 JavaScript 与 Rust。写下代码，观察运行，完成六个实验。">
+  <meta name="theme-color" content="#f6f5f0">
+  <meta name="description" content="在机器人迷宫中学习 JavaScript 与 Rust。写下代码，观察运行，完成 54 个语言挑战。">
   <title>CODE LAB · 双语代码实验室</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1b20'/%3E%3Cpath d='M12 21 32 10 52 21v23L32 55 12 44Z M12 21l20 12 20-12M32 33v22' fill='none' stroke='%2396e5c6' stroke-width='3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./styles.css">
@@ -19,11 +19,12 @@
       <span><strong id="lab-title">CODE LAB<span class="brand-dot">.</span></strong><small>代 码 实 验 室</small></span>
     </a>
     <nav class="topnav" aria-label="主导航">
-      <button id="lab-tab" class="nav-button selected"><span aria-hidden="true">⚗</span> 实验室</button>
-      <button id="page-tab" class="nav-button"><span aria-hidden="true">⌘</span> 改造实验室 <small class="new-badge">NEW</small></button>
-      <button id="manual-button" class="nav-button"><span aria-hidden="true">▱</span> 学习手册</button>
+      <button id="lab-tab" class="nav-button selected">实验室</button>
+      <button id="page-tab" class="nav-button">改造实验室</button>
+      <button id="manual-button" class="nav-button">学习手册</button>
     </nav>
     <div class="header-tools">
+      <button id="tour-button" class="tour-launch" title="重新查看新手引导" aria-label="查看新手引导"><span aria-hidden="true">?</span><span>新手引导</span></button>
       <button id="sound-button" class="icon-button" aria-label="开启音效" title="开启音效" aria-pressed="false"><span id="sound-icon">♪</span></button>
       <span id="lab-beacon" class="lab-beacon" aria-label="实验室照明"><i></i><span>环境灯</span></span><span class="engine-status"><i></i><span id="engine-label">连接实验室</span></span>
     </div>
@@ -33,31 +34,31 @@
       <div class="path-heading"><p class="eyebrow"><span>◇</span> 学习路径</p><h1 id="path-title">修复机器人<span>_</span></h1><p class="muted" id="path-summary">18 个实验 · 2 种语言</p></div>
       <div id="mission-list" class="mission-list"></div>
       <div class="sidebar-bottom">
-        <div class="progress-label"><span id="progress-language">JavaScript 进度</span><strong id="progress-count">0 <span>/ 6</span></strong></div>
-        <div class="progress-track" role="progressbar" aria-label="课程完成进度" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0"><div id="progress-fill"></div></div>
-        <div class="mentor-card"><div class="mentor-top"><div class="mini-robot" aria-hidden="true"><i></i><b>••</b></div><span>实验室导师 <i class="online-dot"></i></span></div><p id="mentor-message">你好，未来的开发者！<br>我是 B-01。用你的第一行代码，唤醒这间实验室吧。</p><span class="mentor-signature">B-01 / 等待你的指令</span></div>
+        <div class="progress-label"><span id="progress-language">JavaScript 进度</span><strong id="progress-count">0 <span>/ 18</span></strong></div>
+        <div class="progress-track" role="progressbar" aria-label="课程完成进度" aria-valuemin="0" aria-valuemax="18" aria-valuenow="0"><div id="progress-fill"></div></div>
+        <details class="mentor-card"><summary class="mentor-top"><div class="mini-robot" aria-hidden="true"><i></i><b>••</b></div><span>B-01 的小提示</span></summary><p id="mentor-message">你好，未来的开发者！<br>我是 B-01。用你的第一行代码，唤醒这间实验室吧。</p></details>
         <p class="sidebar-footer">LEARN BY MAKING THINGS MOVE.</p>
       </div>
     </aside>
     <main class="lab" id="main">
       <section class="coding-panel" aria-label="任务与代码">
-        <section class="mission-intro task-card" aria-labelledby="mission-title"><div class="task-heading"><p class="breadcrumb" id="breadcrumb">实验 01 / 基础指令</p><span class="task-live">当前任务</span></div><h2 id="mission-title">让第一行代码动起来</h2><div class="task-objective"><span aria-hidden="true">↳</span><p id="mission-objective" class="objective"></p></div><ul id="task-checklist" class="task-checklist"></ul><div class="task-footer"><div id="concept-tags" class="tags"></div><span id="task-difficulty"></span></div><p id="new-skill" class="new-skill"></p></section>
+        <section class="mission-intro task-card" aria-labelledby="mission-title"><div class="task-heading"><p class="breadcrumb" id="breadcrumb">实验 01 / 基础指令</p><span class="task-live">01 读懂目标</span></div><h2 id="mission-title">让第一行代码动起来</h2><div class="task-objective"><p id="mission-objective" class="objective"></p></div><details class="lesson-details"><summary>过关要求与知识点</summary><ul id="task-checklist" class="task-checklist"></ul><div class="task-footer"><div id="concept-tags" class="tags"></div><span id="task-difficulty"></span></div><p id="new-skill" class="new-skill"></p></details></section>
         <div class="language-tabs" role="tablist" aria-label="编程语言"><button id="tab-js" role="tab" aria-selected="true" class="language-tab active" data-language="js"><span class="js-badge">JS</span> JavaScript</button><button id="tab-rust" role="tab" aria-selected="false" class="language-tab" data-language="rust"><span class="rust-badge">⚙</span> Rust</button></div>
         <div class="editor-window">
           <div class="editor-bar"><span><i class="file-dot"></i><span id="filename">mission_01.js</span></span><div><button id="copy-button" class="tiny-button" aria-label="复制代码" title="复制代码">▣</button><span id="editor-language">JAVASCRIPT</span></div></div>
           <div class="editor-body"><div id="line-numbers" class="line-numbers" aria-hidden="true"></div><div class="editor-surface"><pre id="highlight" aria-hidden="true"></pre><textarea id="code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="关卡代码编辑器" aria-describedby="syntax-note" maxlength="12000"></textarea></div></div>
           <div class="editor-status"><span><i class="online-dot"></i> <span id="cursor-position">Ln 1, Col 1</span></span><span>UTF-8 <span class="dot-divider">·</span> 教学模式</span></div>
         </div>
-        <div class="hint-strip"><span class="hint-icon" aria-hidden="true">♧</span><p id="inline-hint">每一行指令，都会让想法更进一步。</p></div>
         <div class="editor-actions"><button id="reset-button" class="button secondary" title="恢复本关起始代码"><span>↻</span> 重置</button><button id="hint-button" class="button secondary"><span>♧</span> 提示 <small id="hint-count"></small></button><button id="run-button" class="button primary"><span id="run-icon">▶</span><span id="run-label">运行代码</span><kbd>Ctrl ↵</kbd></button></div>
+        <div class="hint-strip"><span class="hint-icon" aria-hidden="true">♧</span><p id="inline-hint">每一行指令，都会让想法更进一步。</p></div>
         <section class="terminal" aria-label="运行结果"><div class="terminal-bar"><div><span class="terminal-tab">运行结果</span><span class="terminal-label" id="terminal-state">READY</span></div><button id="clear-log" class="tiny-button" aria-label="清空运行日志" title="清空运行日志">⌫</button></div><div id="console" class="console" role="log" aria-live="polite" aria-relevant="additions"></div></section>
         <p id="syntax-note" class="syntax-note">教学模式支持本关使用的指令与语法。<button id="syntax-button">查看支持范围 ↗</button></p>
       </section>
       <section class="simulation-panel" aria-label="机器人实验场">
         <div class="board-frame">
-          <div class="board-heading"><div><p class="eyebrow" id="scene-eyebrow">LIVE SIMULATION <span class="live-indicator"></span></p><h2><span id="board-number">01</span> <span class="slash">/</span> <span id="board-title">初次启动</span></h2><p id="scene-subtitle">收集能量，到达出口</p></div><span id="board-badge" class="board-badge">等待指令</span></div>
-          <div id="web-room-message" class="web-room-message" hidden><span>THIS PAGE IS YOUR LAB</span><strong>你的代码，正在改变整个实验室。</strong><p>留意左上角名称、顶部环境灯和页面配色。这里的变化会直接发生在当前网页上。</p><div id="target-list" class="target-list"></div></div>
-          <div class="board-container"><canvas id="board" role="img" aria-label="机器人迷宫，机器人、能量和出口的位置会随代码运行改变"></canvas><div class="board-coordinate">LAB SECTOR <span id="sector">01</span><small id="grid-size">6 × 6 GRID</small></div><div class="board-hud"><span>ENERGY</span><strong id="energy-count">00 <small>/ 01</small></strong><div id="energy-dots"></div></div><div class="board-caption"><span class="direction-indicator">↗</span><span id="position-label">B-01 · 准备就绪</span></div></div>
+          <div class="board-heading"><div><p class="eyebrow" id="scene-eyebrow">运行预览 <span class="live-indicator"></span></p><h2><span id="board-number">01</span> <span class="slash">/</span> <span id="board-title">初次启动</span></h2><p id="scene-subtitle">收集能量，到达出口</p></div><span id="board-badge" class="board-badge">等待指令</span></div>
+          <div id="web-room-message" class="web-room-message" hidden><span>网页实验 · 即时反馈</span><strong>你的代码，正在改变整个实验室。</strong><p>留意左上角名称、顶部环境灯和页面配色。这里的变化会直接发生在当前网页上。</p><div id="target-list" class="target-list"></div></div>
+          <div class="board-container"><canvas id="board" role="img" aria-label="机器人迷宫，机器人、能量和出口的位置会随代码运行改变"></canvas><div class="board-coordinate">LAB SECTOR <span id="sector">01</span><small id="grid-size">6 × 6 GRID</small></div><div class="board-hud"><span>能量收集</span><strong id="energy-count">00 <small>/ 01</small></strong><div id="energy-dots"></div></div><div class="board-caption"><span class="direction-indicator">↗</span><span id="position-label">B-01 · 准备就绪</span></div></div>
           <div class="legend"><div><span class="legend-robot" aria-hidden="true">▣</span><span>机器人<small>你的伙伴 B-01</small></span></div><div><span class="legend-battery" aria-hidden="true">◇</span><span>能量<small>收集所有能量</small></span></div><div><span class="legend-exit" aria-hidden="true">⬡</span><span>出口<small>到达这里完成实验</small></span></div></div>
         </div>
         <div class="playback-bar"><div class="speed-control"><span>运行速度</span><div role="group" aria-label="运行速度"><button data-speed="0.5">0.5×</button><button data-speed="1" class="active">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div></div><button id="step-button" class="button step-button"><span>▸Ⅰ</span> 单步执行 <span class="chevron">›</span></button></div>
@@ -68,6 +69,16 @@
   <section id="completion" class="completion" aria-label="通关与下一关" hidden><div><span class="success-emblem" aria-hidden="true">✓</span><div><h3 id="completion-title">实验成功！</h3><p id="completion-text"></p></div></div><button id="next-button" class="button primary">下一关 →</button></section>
   <dialog id="manual-dialog" class="manual-dialog"><div class="dialog-header"><div><p class="eyebrow">FIELD GUIDE / 学习手册</p><h2>写代码，让想法动起来。</h2></div><button id="close-manual" class="icon-button" aria-label="关闭学习手册">×</button></div><div class="manual-content"><p>欢迎来到代码实验室。你将用 JavaScript 或 Rust 指挥 B-01，或直接改造当前网页。两条路线分别记录通关进度。</p><div class="manual-steps"><div><b>01</b><strong>读懂目标</strong><p>查看任务卡，确认本关需要发生的变化。</p></div><div><b>02</b><strong>编写代码</strong><p>修改编辑器中的代码，用提示寻找思路。</p></div><div><b>03</b><strong>观察运行</strong><p>点击运行或单步，结合高亮行和日志调试。</p></div></div><h3>同一个想法，两种表达</h3><table><thead><tr><th>动作 / 语法</th><th>JavaScript</th><th>Rust</th></tr></thead><tbody><tr><td>前进一步</td><td><code>forward();</code></td><td><code>forward();</code></td></tr><tr><td>左转 / 右转</td><td><code>turnLeft(); / turnRight();</code></td><td><code>turn_left(); / turn_right();</code></td></tr><tr><td>前方可通行？</td><td><code>pathAhead()</code></td><td><code>path_ahead()</code></td></tr><tr><td>定义步数</td><td><code>let steps = 3;</code></td><td><code>let steps: i32 = 3;</code></td></tr><tr><td>重复三次</td><td><code>for (let i = 0; i &lt; 3; i++) { … }</code></td><td><code>for _ in 0..3 { … }</code></td></tr><tr><td>条件判断</td><td><code>if (pathAhead()) { … } else { … }</code></td><td><code>if path_ahead() { … } else { … }</code></td></tr></tbody></table><p class="manual-note">本游戏使用受限教学解释器：支持上表中的语法、整数变量与 <code>// 注释</code>，Rust 代码写在 <code>fn main() { … }</code> 内。不会执行任意 JavaScript 或完整编译 Rust；单次最多 256 条指令。<code>forward</code> 等函数是游戏提供的 API，不是语言内置函数。</p><h3>JavaScript × Rust，如何一起工作？</h3><p>JavaScript 负责网页、代码教学解释器、动画和进度；Rust 编译为 WebAssembly，在浏览器里负责移动、墙体碰撞、转向和通关判定。界面右上角会显示实际使用的规则引擎。</p><h3>键盘与进度</h3><p><kbd>Ctrl / ⌘</kbd> + <kbd>Enter</kbd> 运行 / 停止，<kbd>Tab</kbd> 在编辑器插入缩进，<kbd>Esc</kbd> 关闭手册。编辑器获得焦点时，可按 <kbd>Esc</kbd> 再按 <kbd>Tab</kbd> 移出。进度保存在当前浏览器，清理浏览器数据后会重置。</p><div class="manual-bottom"><span>不怕写错，调试也是学习的一部分。</span><button id="manual-start" class="button primary">开始实验 →</button></div></div></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
+  <dialog id="tour-dialog" class="tour-dialog" aria-labelledby="tour-title" aria-describedby="tour-description">
+    <svg class="tour-mask" aria-hidden="true"><path id="tour-shade" fill-rule="evenodd"></path></svg>
+    <div id="tour-spotlight" class="tour-spotlight" aria-hidden="true"></div>
+    <section id="tour-card" class="tour-card">
+      <div class="tour-heading"><span id="tour-progress"></span><button id="tour-close" class="tour-skip" aria-label="跳过新手引导">跳过 ×</button></div>
+      <h2 id="tour-title" aria-live="polite" aria-atomic="true"></h2><p id="tour-description"></p>
+      <div class="tour-actions"><button id="tour-back" class="button secondary">上一步</button><button id="tour-next" class="button primary">下一步 →</button></div>
+      <small>随时可从右上角「新手引导」重新查看</small>
+    </section>
+  </dialog>
   <script type="module" src="./app.mjs"></script>
 </body>
 </html>

@@ -10,7 +10,13 @@ Windows：双击根目录的 `start-game.cmd`。本机已具备 Node.js；启动
 
 不要直接双击 `dist/index.html`：浏览器的文件安全限制会阻止 ES 模块和 Wasm 加载。请使用启动器或本地服务。
 
+## GitHub Pages 部署
+
+在 GitHub 仓库的 Settings → Pages 中，将 Source 设为 GitHub Actions。推送到 `main` 后，`.github/workflows/pages.yml` 会先运行核心测试，再发布 `dist/` 内的完整网站；也可以在 Actions 页面手动运行。无需安装依赖或重新编译 Rust。存档保存在访问者浏览器中，不跨设备同步。
+
 ## 怎么玩
+
+首次打开会自动显示 11 步新手引导：灰色遮罩逐项留出矩形高亮，说明路线、选关、目标、编辑器、运行、棋盘、单步和日志。支持下一步、上一步、跳过及 Esc 关闭；右上角「新手引导 / ?」可随时重看。打开引导会暂停正在运行的代码，草稿保留。
 
 1. 在左侧选择实验，在 JavaScript / Rust 标签之间切换。
 2. 阅读目标，修改代码，点击“运行代码”，或按 Ctrl / ⌘ + Enter。
@@ -26,6 +32,12 @@ Windows：双击根目录的 `start-game.cmd`。本机已具备 Node.js；启动
 寄语框已删除。通关后的“下一关”固定在屏幕底部，显示下个实验的名称；按钮会获得键盘焦点，可以按 Enter 继续。若跳到了最后一课而前面仍有未完成内容，按钮会引导到尚未完成的课程。
 
 通关后，B-01 会跳跃、挥臂，并出现彩屑和扩散光环。开启系统“减少动态效果”时，改为固定光环与成功提示。浏览器存储被禁用时仍可玩，但刷新后不会保留进度。
+
+## 本次 UI 改版
+
+界面使用米白工作台、炭灰编辑器和低饱和绿。先读一句话目标，再写代码、运行并观察。知识点和 B-01 提示可展开，运行按钮是主要操作。网页课程的深色环境和标题染色均保留并适配文字对比度。新参考图位于 `design/ui-refresh/`，设计来源、截图和验证范围见 `docs/ui-refresh.md`。
+
+顶部三个导航选项整体居中。机器人棋盘采用完整相接的等距地砖、低矮灰色障碍、琥珀能量和贴地绿色出口，修正原有投影错位，避免遮挡机器人与目标。
 
 ## JavaScript 与 Rust 的分工
 
@@ -79,7 +91,7 @@ document.body.classList.remove('dance-mode');
 - `docs/task-plan.md`：任务计划书。
 - `docs/expansion-plan.md`：18 关、网页实验、任务视觉和通关特效的升级计划。
 - `docs/fun-lab-plan.md`：趣味网页课程、寄语移除与固定通关导航的升级计划。
-- `design/interface-concept.png`：用内置生图生成的界面设计原图。
+- `design/interface-concept.png`：早期界面设计原图；本次 generate-image 参考图和实施截图位于 `design/ui-refresh/`。
 - `design/prompt.txt`：完整生成提示词；工具为内置 imagegen。
 - `dist/`：可部署的完整游戏，无网络字体或外部素材依赖。
 - `rust-engine/`：真实 Rust 源码、构建与接口说明。
